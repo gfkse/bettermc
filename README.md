@@ -7,6 +7,10 @@ The `bettermc` package provides a wrapper around the
 `parallel::mclapply` function for better performance, error handling and
 UX.
 
+**Note:** As of now this package only works on Linux, not macOS. Windows
+will never be supported as `parallel::mclapply` itself does not support
+it.
+
 ## Features
 
 Here is a short overview on its main features …

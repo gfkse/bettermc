@@ -12,7 +12,9 @@ knitr::opts_chunk$set(cache = TRUE)
 
 [![R build status](https://github.com/gfkse/bettermc/workflows/R-CMD-check/badge.svg)](https://github.com/gfkse/bettermc/actions?workflow=R-CMD-check)
 
-The `bettermc` package provides a wrapper around the `parallel::mclapply` function for better performance, error handling and UX.
+The `bettermc` package provides a wrapper around the `parallel::mclapply` function for better performance, error handling and UX. 
+
+**Note:** As of now this package only works on Linux, not macOS. Windows will never be supported as `parallel::mclapply` itself does not support it.
 
 ## Features
 Here is a short overview on its main features ...
