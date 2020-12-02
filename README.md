@@ -1,5 +1,8 @@
 # bettermc
 
+[![R build
+status](https://github.com/gfkse/bettermc/workflows/R-CMD-check/badge.svg)](https://github.com/gfkse/bettermc/actions?workflow=R-CMD-check)
+
 The `bettermc` package provides a wrapper around the
 `parallel::mclapply` function for better performance, error handling and
 UX.
