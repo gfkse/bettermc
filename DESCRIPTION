@@ -1,0 +1,27 @@
+Package: bettermc
+Title: parallel::mclapply Wrapper for Better Performance, Error Handling and UX
+Version: 0.0.0.9000
+Date: 2020-12-02
+Authors@R: 
+    person(given = "Andreas",
+           family = "Kersting",
+           role = c("aut", "cre"),
+           email = "andreas.kersting@gfk.com")
+Author: Andreas Kersting [aut, cre]
+Maintainer: Andreas Kersting <andreas.kersting@gfk.com>
+Description: Drop-in replacement for parallel::mclapply adding e.g. tracebacks, 
+    crash dumps, condition handling, progress bars and faster inter process 
+    communication. Some of the internal functions are also exported for other
+    use: etry (extended try), copy2shm/allocate_from_shm (copy to and allocate 
+    from POSIX shared memory) and char_map/map2char (split a character vector
+    into its unique elements and a mapping on these).
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports:
+    checkmate,
+    parallel
+RoxygenNote: 7.2
+Suggests: 
+    progress,
+    testthat (>= 2.1.0)
