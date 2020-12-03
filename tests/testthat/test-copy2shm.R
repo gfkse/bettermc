@@ -24,6 +24,8 @@ for (copy in c(TRUE, FALSE)) {
   })
 
   test_that("allocate_from_shm handles a corrupt shm_obj gracefully", {
+    skip_on_os("mac")
+
     o <- copy2shm(numeric(), "/bettermc_allocate_from_shm_test", overwrite = TRUE, copy = copy)
     o$name <- "bettermc_allocate_from_shm_test_does_not_exist"
     expect_error(allocate_from_shm(o), "shm_open")
@@ -31,10 +33,6 @@ for (copy in c(TRUE, FALSE)) {
     o <- copy2shm(1:10, "/bettermc_allocate_from_shm_test", overwrite = TRUE, copy = copy)
     o$length <- 11
     expect_error(allocate_from_shm(o), "alloc_from_shm")
-
-    o <- copy2shm(1:10, "/bettermc_allocate_from_shm_test", overwrite = TRUE, copy = copy)
-    o$size <- 100
-    expect_error(allocate_from_shm(o), "wrong size")
 
     o <- copy2shm(1:10, "/bettermc_allocate_from_shm_test", overwrite = TRUE, copy = copy)
     o$type <- 0

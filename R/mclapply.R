@@ -181,8 +181,8 @@ mclapply <- function(X, FUN, ...,
   # ppid is used to name POSIX shared memory objects and semaphores
   ppid <- Sys.getpid()
 
-  timestamp <- as.character(round(as.numeric(Sys.time()) * 1000 * 1000))
-  shm_prefix <- sprintf("bettermc_%d_%s_", ppid, timestamp)
+  timestamp <- as.character(round(as.numeric(Sys.time()) * 1000))
+  shm_prefix <- sprintf("/bmc_%d_%s_", ppid, timestamp)
 
   # unlink shared memory objects in case of errors
   on.exit({
@@ -256,8 +256,16 @@ mclapply <- function(X, FUN, ...,
     idx <- args[[1L]]
     args[1L] <- list(X[[idx]])  # list() because X[[idx]] could be NULL
 
-    stdout_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&1", idx))
-    stderr_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&2", idx))
+    if (OSTYPE == "linux") {
+      stdout_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&1", idx))
+      stderr_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&2", idx))
+    } else if (OSTYPE == "macos") {
+      stdout_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&1", idx))
+      stderr_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&2", idx))
+    } else {
+      stop("unexpected value for OSTYPE: ", OSTYPE)
+    }
+
 
     # make output work in RStudio
     if (mc.stdout == "output") {

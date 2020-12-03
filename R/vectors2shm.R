@@ -184,6 +184,15 @@ shm2vectors <- function(l) {
 #' @export
 copy2shm <- function(x, name, overwrite = FALSE, copy = TRUE) {
   if (isS4(x)) stop("'x' must not be an S4 object")
+
+  if (!isFALSE(overwrite)) {
+    if (OSTYPE == "macos") {
+      stop("On macOS, 'overwrite' must be FALSE.")
+    } else if (OSTYPE != "linux") {
+      stop("invalid value for OSTYPE: ", OSTYPE)
+    }
+  }
+
   ret <- .Call(C_copy2shm, x, name, overwrite,
                getOption("bettermc.hugepage_limit", 104857600))  # 100 MiB
   if (is.character(ret)) return(ret)
@@ -213,6 +222,13 @@ copy2shm <- function(x, name, overwrite = FALSE, copy = TRUE) {
 #' @export
 allocate_from_shm <- function(obj, copy = obj$copy) {
   checkmate::assertClass(obj, "shm_obj")
+
+  if (OSTYPE == "macos") {
+    copy <- TRUE
+  } else if (OSTYPE != "linux") {
+    stop("invalid value for OSTYPE: ", OSTYPE)
+  }
+
   .Call(C_allocate_from_shm, obj$name, obj$type, obj$length, obj$size,
         obj$attributes, copy)
 }

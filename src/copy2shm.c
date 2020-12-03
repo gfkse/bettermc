@@ -201,22 +201,17 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
     error("'shm_open' failed with '%s'\n", strerror(errno));
   }
 
-  struct stat sb;
-  if (fstat(fd, &sb) == -1) {
-    close(fd);
-    error("'fstat' failed with '%s'\n", strerror(errno));
-  }
-
-  if (sb.st_size != asReal(size)) {
-    close(fd);
-    error("file backing shm object is of wrong size; expected: %.0f bytes, actual: %ld bytes",
-          asReal(size), sb.st_size);
-  }
-
   // MAP_PRIVATE is crucial here; using MAP_SHARED would make unit test
   // "changes to vectors allocate(d)_from_shm are private" fail
-  void *sptr = mmap(NULL, sb.st_size,
-                    PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+  void *sptr;
+  if (asLogical(copy)) {
+    sptr = mmap(NULL, asReal(size),
+                PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  } else {
+    sptr = mmap(NULL, asReal(size),
+                PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+  }
+
   close(fd);
 
   if (sptr == MAP_FAILED) {
@@ -229,7 +224,7 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
   }
 
   data->ptr = sptr;
-  data->size = sb.st_size;
+  data->size = asReal(size);
 
   R_allocator_t allocator;
   allocator.mem_alloc = &shm_alloc;

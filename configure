@@ -1,0 +1,13 @@
+#!/bin/sh
+
+case $(uname | tr '[:upper:]' '[:lower:]') in
+  linux*)
+    echo "PKG_LIBS = -lrt" > src/Makevars
+    ;;
+  darwin*)
+    ;;
+  *)
+    echo "This does not look like Linux or macOS. Aborting." >&2
+    exit 1
+    ;;
+esac
