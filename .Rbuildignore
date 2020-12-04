@@ -7,5 +7,5 @@
 ^README\.Rmd$
 ^README_cache$
 ^.github$
-^LICENSE$
+^LICENCE$
 ^codecov\.yml$
