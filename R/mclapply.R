@@ -185,13 +185,24 @@ mclapply <- function(X, FUN, ...,
   shm_prefix <- sprintf("/bmc_%d_%s_", ppid, timestamp)
 
   # unlink shared memory objects in case of errors
+  #
+  # the regular order in which the objects are unlinked is
+  # [0, N, N - 1, ..., 2, 1] (cf. the comments in shm2vectors())
+  #
+  # unlink_all_shm() unlinks in increasing order starting at 'start' and
+  # stopping at the first non-existing object
   on.exit({
     if (mc.shm.ipc) {
       lapply(seq_along(X), function(i)
-        unlink_all_shm(paste0(shm_prefix, i, "_"), 0L))
-    } else if (!is.infinite(mc.share.vectors)) {
+        unlink_all_shm(paste0(shm_prefix, i, "_"), start = 0L))
+    }
+
+    # if mc.shm.ipc == TRUE, then we would generally not need to run
+    # unlink_all_shm(..., 1L) again but there is the edge case when object 0
+    # was already unlinked but some of the objects 1, 2, ... still exist
+    if (!is.infinite(mc.share.vectors)) {
       lapply(seq_along(X), function(i)
-        unlink_all_shm(paste0(shm_prefix, i, "_"), 1L))
+        unlink_all_shm(paste0(shm_prefix, i, "_"), start = 1L))
     }
   })
 
