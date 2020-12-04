@@ -38,5 +38,12 @@ for (copy in c(TRUE, FALSE)) {
     o$type <- 0
     expect_error(allocate_from_shm(o), "unsupported SEXP type")
   })
+
+  test_that("changes to vectors allocate(d)_from_shm are private", {
+    o <- copy2shm(1:10, name = "/bettermc_private_test", copy = copy)
+    x <- allocate_from_shm(o)
+    parallel::mclapply(1:2, function(i) x[i] <<- 99L)
+    expect_identical(x, 1:10)
+  })
 }
 
