@@ -4,7 +4,7 @@ mc.compress.altreps <- c("if_allocated", "yes", "no")
 mc.share.altreps <- c("no", "yes", "if_allocated")
 mc.share.copy <- c(TRUE, FALSE)
 mc.shm.ipc <- c(TRUE, FALSE)
-mc.progress <- c(FALSE, TRUE)
+mc.progress <- c(FALSE)
 mc.cores <- c(1, 2)
 mc.stdout <- c("capture", "output")
 mc.silent <- c(TRUE, FALSE)
@@ -126,7 +126,7 @@ E <- list2env(X)
 E[["E"]] <- E
 test_that("returning recursive environments using shared memory works", {
   expect_equal(
-    bettermc::mclapply(1:2, function(i) E, mc.share.vectors = TRUE, mc.share.altreps = "yes"),
+    bettermc::mclapply(1:2, function(i) E, mc.share.vectors = TRUE, mc.share.altreps = "yes", mc.progress = TRUE),
     parallel::mclapply(1:2, function(i) E)
   )
 })
