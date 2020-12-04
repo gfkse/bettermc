@@ -201,6 +201,31 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
     error("'shm_open' failed with '%s'\n", strerror(errno));
   }
 
+  struct stat sb;
+  if (fstat(fd, &sb) == -1) {
+    close(fd);
+    error("'fstat' failed with '%s'\n", strerror(errno));
+  }
+
+#ifdef CHECK_EXACT_SHM_OBJ_SIZE
+  // used on Linux
+  if (sb.st_size != asReal(size)) {
+    close(fd);
+    error("file backing shm object is of wrong size; expected: %.0f bytes, actual: %ld bytes",
+          asReal(size), sb.st_size);
+  }
+#else
+  // used on macOS, which reports the size in multiples of page size
+  long pagesize = sysconf(_SC_PAGESIZE);
+  size_t pages = (size_t) asReal(size) / pagesize + 1;
+
+  if (sb.st_size != pages * pagesize) {
+    close(fd);
+    error("file backing shm object is of wrong size; expected: %ld bytes, actual: %ld bytes",
+          pages * pagesize, sb.st_size);
+  }
+#endif
+
   // MAP_PRIVATE is crucial here; using MAP_SHARED would make unit test
   // "changes to vectors allocate(d)_from_shm are private" fail
   void *sptr;

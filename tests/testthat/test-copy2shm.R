@@ -37,6 +37,18 @@ for (copy in c(TRUE, FALSE)) {
     o <- copy2shm(1:10, "/bmc_allocate_from_shm_test", copy = copy)
     o$type <- 0
     expect_error(allocate_from_shm(o), "unsupported SEXP type")
+
+    o <- copy2shm(1:10, "/bettermc_allocate_from_shm_test", overwrite = TRUE, copy = copy)
+    o$size <- 5000  # > 4096 (typical page size)
+    expect_error(allocate_from_shm(o), "wrong size")
+  })
+
+  test_that("allocate_from_shm checks exact size of shm obj on Linux", {
+    skip_on_os("mac")
+
+    o <- copy2shm(1:10, "/bettermc_allocate_from_shm_test", copy = copy)
+    o$size <- 100
+    expect_error(allocate_from_shm(o), "wrong size")
   })
 
   test_that("changes to vectors allocate(d)_from_shm are private", {
@@ -46,7 +58,7 @@ for (copy in c(TRUE, FALSE)) {
     expect_identical(x, 1:10)
   })
 
-  test_that("overwrite works", {
+  test_that("overwrite in allocate_from_shm works", {
     skip_on_os("mac")
 
     copy2shm(c(1, 2, 3), "/bmc_copy2shm_overwrite_test", copy = copy)

@@ -3,6 +3,7 @@
 case $(uname | tr '[:upper:]' '[:lower:]') in
   linux*)
     echo "PKG_LIBS = -lrt" > src/Makevars
+    echo "PKG_CFLAGS = -DCHECK_EXACT_SHM_OBJ_SIZE" >> src/Makevars
     ;;
   darwin*)
     ;;
