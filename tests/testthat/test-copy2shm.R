@@ -45,5 +45,13 @@ for (copy in c(TRUE, FALSE)) {
     parallel::mclapply(1:2, function(i) x[i] <<- 99L)
     expect_identical(x, 1:10)
   })
+
+  test_that("overwrite works", {
+    skip_on_os("mac")
+
+    copy2shm(c(1, 2, 3), "/bmc_copy2shm_overwrite_test", copy = copy)
+    o <- copy2shm(c(4, 5, 6), "/bmc_copy2shm_overwrite_test", copy = copy, overwrite = TRUE)
+    expect_identical(allocate_from_shm(o), c(4, 5, 6))
+  })
 }
 
