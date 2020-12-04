@@ -299,7 +299,13 @@ SEXP unlink_all_shm(SEXP prefix, SEXP start) {
   int i = asInteger(start);
   while (TRUE) {
     snprintf(buf, total_len, "%s%d", pre, i);
-    if (shm_unlink(buf) == -1 && errno == ENOENT) break;
+    if (shm_unlink(buf) == -1) {
+      if (errno == ENOENT) {
+        break;
+      } else {
+        error("'shm_unlink' failed with '%s'\n", strerror(errno));
+      }
+    }
     i++;
   }
 
