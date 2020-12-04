@@ -38,7 +38,7 @@ for (copy in c(TRUE, FALSE)) {
     o$type <- 0
     expect_error(allocate_from_shm(o), "unsupported SEXP type")
 
-    o <- copy2shm(1:10, "/bettermc_allocate_from_shm_test", overwrite = TRUE, copy = copy)
+    o <- copy2shm(1:10, "/bettermc_allocate_from_shm_test", copy = copy)
     o$size <- 5000  # > 4096 (typical page size)
     expect_error(allocate_from_shm(o), "wrong size")
   })
