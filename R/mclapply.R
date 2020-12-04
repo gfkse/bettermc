@@ -66,11 +66,11 @@
 #'
 #'@section POSIX Shared Memory: The shared memory objects created by
 #'  \code{mclapply} are named as follows (this may be subject to change):
-#'  \code{/bettermc_ppid_timestamp_idx_cntr} (e.g.
-#'  \code{/bettermc_21479_1601366973201654_16_10}), with
+#'  \code{/bmc_ppid_timestamp_idx_cntr} (e.g.
+#'  \code{/bmc_21479_1601366973201_16_10}), with
 #'  \describe{\item{ppid}{the process id of the parent
 #'  process.}\item{timestamp}{the time at which \code{mclapply} was invoked (in
-#'  microseconds since epoch).}\item{idx}{the index of the current element of
+#'  milliseconds since epoch).}\item{idx}{the index of the current element of
 #'  \code{X} (1-based).}\item{cntr}{an internal counter (1-based) referring to
 #'  all the objects created due to \code{mc.share.vectors} for the current value
 #'  of \code{X}; a value of \code{0} is used for the object created due to

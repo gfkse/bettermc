@@ -15,11 +15,13 @@ based hereon or a factor. Long vectors are supported.}
 
 \item{name}{the name of the shared memory object to create. A portable name
 starts with a "/", followed by one or more (up to 253) characters, none of
-which are slashes.}
+which are slashes. \bold{Note:} on macOS the total length of the name must
+not exceed 31 characters.}
 
 \item{overwrite}{should an already existing shared memory object with the
 given name be overwritten? If \code{FALSE}, the copy fails if such an
-object already exists.}
+object already exists. \bold{Note:} Due to bugs in the macOS implementation
+of POSIX shared memory, (as of now) only \code{FALSE} is supported.}
 
 \item{copy}{should the vector placed in shared memory be used directly
 (\code{FALSE}) by \code{allocate_from_shm} or rather a copy of it
@@ -32,7 +34,8 @@ garbage collected. If we initially copy the whole vector from shared memory
 to "regular" one, the former can be freed directly and the latter can be
 modified in place. \bold{Note:} The value passed to \code{copy2shm} has no
 direct effect. It only sets the default value for \code{allocate_from_shm},
-which can safely be changed.}
+which can safely be changed. \bold{Note 2:} \code{FALSE} is silently
+ignored on macOS.}
 
 \item{obj}{an object as returned by \code{copy2shm}, which was typically
 called in another process.}
@@ -56,12 +59,12 @@ called in another process.}
   \code{copy = TRUE}, the vector will be allocated using a custom allocator,
   but this is not guaranteed. As of now, vectors with less than two elements
   are allocated using R's default allocator. This implementational detail
-  must not be relied on. The custom allocator \emph{privately} maps the
-  shared memory object into the address space of the current process. In
-  particular this means that changes made to this memory region by
-  subsequently forked child processes are private to them: neither the parent
-  nor a sibling process will see these changes. This is most probably what we
-  want and expect.
+  must not be relied on. If \code{copy = FALSE}, the custom allocator
+  \emph{privately} maps the shared memory object into the address space of
+  the current process. In particular this means that changes made to this
+  memory region by subsequently forked child processes are private to them:
+  neither the parent nor a sibling process will see these changes. This is
+  most probably what we want and expect.
 }
 \description{
 Copy the data of a vector to a POSIX shared memory object and allocate from
