@@ -24,17 +24,17 @@ for (copy in c(TRUE, FALSE)) {
   })
 
   test_that("allocate_from_shm handles a corrupt shm_obj gracefully", {
-    skip_on_os("mac")
-
-    o <- copy2shm(numeric(), "/bettermc_allocate_from_shm_test", overwrite = TRUE, copy = copy)
-    o$name <- "bettermc_allocate_from_shm_test_does_not_exist"
+    o <- copy2shm(numeric(), "/bmc_allocate_from_shm_test", copy = copy)
+    o$name <- "/bmc_missing_test"
     expect_error(allocate_from_shm(o), "shm_open")
+    o$name <- "/bmc_allocate_from_shm_test"
+    allocate_from_shm(o)
 
-    o <- copy2shm(1:10, "/bettermc_allocate_from_shm_test", overwrite = TRUE, copy = copy)
+    o <- copy2shm(1:10, "/bmc_allocate_from_shm_test", copy = copy)
     o$length <- 11
     expect_error(allocate_from_shm(o), "alloc_from_shm")
 
-    o <- copy2shm(1:10, "/bettermc_allocate_from_shm_test", overwrite = TRUE, copy = copy)
+    o <- copy2shm(1:10, "/bmc_allocate_from_shm_test", copy = copy)
     o$type <- 0
     expect_error(allocate_from_shm(o), "unsupported SEXP type")
   })
