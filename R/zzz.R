@@ -3,6 +3,8 @@ OSTYPE <-
     "linux"
   } else if (startsWith(tolower(Sys.info()["sysname"]), "darwin")) {
     "macos"
+  } else if (startsWith(tolower(Sys.info()["sysname"]), "sunos")) {
+    "solaris"
   } else {
-    stop("This does not look like a Linux or macOS. Aborting.")
+    stop("This does not look like a Linux, Solaris or macOS. Aborting.")
   }

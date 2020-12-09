@@ -270,7 +270,7 @@ mclapply <- function(X, FUN, ...,
     if (OSTYPE == "linux") {
       stdout_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&1", idx))
       stderr_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&2", idx))
-    } else if (OSTYPE == "macos") {
+    } else if (OSTYPE %in% c("macos", "solaris")) {
       stdout_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&1", idx))
       stderr_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&2", idx))
     } else {

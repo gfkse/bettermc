@@ -1,14 +1,18 @@
 #!/bin/sh
 
-case $(uname | tr '[:upper:]' '[:lower:]') in
+case `uname | tr '[A-Z]' '[a-z]'` in
   linux*)
+    echo "PKG_LIBS = -lrt" > src/Makevars
+    echo "PKG_CFLAGS = -DCHECK_EXACT_SHM_OBJ_SIZE" >> src/Makevars
+    ;;
+  sunos*)
     echo "PKG_LIBS = -lrt" > src/Makevars
     echo "PKG_CFLAGS = -DCHECK_EXACT_SHM_OBJ_SIZE" >> src/Makevars
     ;;
   darwin*)
     ;;
   *)
-    echo "This does not look like Linux or macOS. Aborting." >&2
+    echo "This does not look like Linux, Solaris or macOS. Aborting." >&2
     exit 1
     ;;
 esac

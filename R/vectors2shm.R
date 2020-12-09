@@ -191,7 +191,7 @@ copy2shm <- function(x, name, overwrite = FALSE, copy = TRUE) {
   if (!isFALSE(overwrite)) {
     if (OSTYPE == "macos") {
       stop("On macOS, 'overwrite' must be FALSE.")
-    } else if (OSTYPE != "linux") {
+    } else if (!OSTYPE %in% c("linux", "solaris")) {
       stop("invalid value for OSTYPE: ", OSTYPE)
     }
   }
@@ -230,7 +230,7 @@ allocate_from_shm <- function(obj, copy = obj$copy) {
   # if copy = TRUE we can (and do) create a shared mapping, hence:
   if (OSTYPE == "macos") {
     copy <- TRUE
-  } else if (OSTYPE != "linux") {
+  } else if (!OSTYPE %in% c("linux", "solaris")) {
     stop("invalid value for OSTYPE: ", OSTYPE)
   }
 
