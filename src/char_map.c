@@ -3,7 +3,15 @@
 #include <string.h>
 #include <stdlib.h>
 
+#if UINTPTR_MAX == 0xffffffff
+#define n_pass_value 4
+#elif UINTPTR_MAX == 0xffffffffffffffff
 #define n_pass_value 8
+#else
+#error "failed to detect if this is a 32- or 64-bit system"
+#endif
+
+
 
 SEXP char_map(SEXP x) {
   SEXP unique;
@@ -19,8 +27,13 @@ SEXP char_map(SEXP x) {
 
   const intptr_t *restrict input = (intptr_t *) DATAPTR(x);
 
+#if n_pass_value == 4
+  struct uniqueN_data_UINT32_UINT32 * restrict uniqueN_data =
+    (struct uniqueN_data_UINT32_UINT32 *) malloc(n * sizeof(struct uniqueN_data_UINT32_UINT32));
+#else
   struct uniqueN_data_UINT32_UINT64 * restrict uniqueN_data =
     (struct uniqueN_data_UINT32_UINT64 *) malloc(n * sizeof(struct uniqueN_data_UINT32_UINT64));
+#endif
 
   uint64_t (*restrict hist_value)[n_bucket] = malloc(sizeof(uint64_t[n_pass_value][n_bucket]));
   memset(hist_value, 0, n_pass_value * n_bucket * sizeof(uint64_t));
@@ -29,19 +42,9 @@ SEXP char_map(SEXP x) {
     (uniqueN_data + i)->rank = i;
     (uniqueN_data + i)->value = input[i];
 
-    //for (int jj = 0; jj < n_pass_value; jj++) {
-    //  hist_value[jj][(uniqueN_data + i)->value >> jj * shift & mask]++;
-    //}
-
-    _Static_assert(n_pass_value == 8, "n_pass_value must be 8");
-    hist_value[0][input[i] >> 0 * shift & mask]++;
-    hist_value[1][input[i] >> 1 * shift & mask]++;
-    hist_value[2][input[i] >> 2 * shift & mask]++;
-    hist_value[3][input[i] >> 3 * shift & mask]++;
-    hist_value[4][input[i] >> 4 * shift & mask]++;
-    hist_value[5][input[i] >> 5 * shift & mask]++;
-    hist_value[6][input[i] >> 6 * shift & mask]++;
-    hist_value[7][input[i] >> 7 * shift & mask]++;
+    for (int jj = 0; jj < n_pass_value; jj++) {
+      hist_value[jj][(uniqueN_data + i)->value >> jj * shift & mask]++;
+    }
   }
 
   rsort(uniqueN_data, n, NULL, hist_value, VALUE_THEN_RANK);
@@ -97,8 +100,13 @@ SEXP char_map_long(SEXP x) {
 
   const intptr_t *restrict input = (intptr_t *) DATAPTR(x);
 
+#if n_pass_value == 4
+  struct uniqueN_data_UINT64_UINT32 * restrict uniqueN_data =
+    (struct uniqueN_data_UINT64_UINT32 *) malloc(n * sizeof(struct uniqueN_data_UINT64_UINT32));
+#else
   struct uniqueN_data_UINT64_UINT64 * restrict uniqueN_data =
     (struct uniqueN_data_UINT64_UINT64 *) malloc(n * sizeof(struct uniqueN_data_UINT64_UINT64));
+#endif
 
   uint64_t (*restrict hist_value)[n_bucket] = malloc(sizeof(uint64_t[n_pass_value][n_bucket]));
   memset(hist_value, 0, n_pass_value * n_bucket * sizeof(uint64_t));
@@ -107,19 +115,9 @@ SEXP char_map_long(SEXP x) {
     (uniqueN_data + i)->rank = i;
     (uniqueN_data + i)->value = input[i];
 
-    //for (int jj = 0; jj < n_pass_value; jj++) {
-    //  hist_value[jj][(uniqueN_data + i)->value >> jj * shift & mask]++;
-    //}
-
-    _Static_assert(n_pass_value == 8, "n_pass_value must be 8");
-    hist_value[0][input[i] >> 0 * shift & mask]++;
-    hist_value[1][input[i] >> 1 * shift & mask]++;
-    hist_value[2][input[i] >> 2 * shift & mask]++;
-    hist_value[3][input[i] >> 3 * shift & mask]++;
-    hist_value[4][input[i] >> 4 * shift & mask]++;
-    hist_value[5][input[i] >> 5 * shift & mask]++;
-    hist_value[6][input[i] >> 6 * shift & mask]++;
-    hist_value[7][input[i] >> 7 * shift & mask]++;
+    for (int jj = 0; jj < n_pass_value; jj++) {
+      hist_value[jj][(uniqueN_data + i)->value >> jj * shift & mask]++;
+    }
   }
 
   rsort(uniqueN_data, n, NULL, hist_value, VALUE_THEN_RANK);

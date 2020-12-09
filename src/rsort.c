@@ -113,6 +113,12 @@ MAKE_RSORT(UINT32_UINT64)
 #undef n_pass_value
 
 #define n_pass_rank 8
+#define n_pass_value 4
+MAKE_RSORT(UINT64_UINT32)
+#undef n_pass_rank
+#undef n_pass_value
+
+#define n_pass_rank 8
 #define n_pass_value 8
 MAKE_RSORT(UINT64_UINT64)
 #undef n_pass_rank
