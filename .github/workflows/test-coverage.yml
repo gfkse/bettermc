@@ -10,6 +10,8 @@ name: test-coverage
 
 jobs:
   test-coverage:
+    if: !contains(github.event.head_commit.message, '[ci skip]')
+
     runs-on: ubuntu-20.04
     env:
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true

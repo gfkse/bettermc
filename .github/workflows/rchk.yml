@@ -1,0 +1,18 @@
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+name: R-CMD-check
+
+jobs:
+  rchk:
+    if: !contains(github.event.head_commit.message, '[ci skip]')
+
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: r-lib/actions/run-rchk@master
