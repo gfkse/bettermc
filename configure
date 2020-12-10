@@ -2,12 +2,17 @@
 
 case `uname | tr '[A-Z]' '[a-z]'` in
   linux*)
-    echo "PKG_LIBS = -lrt" > src/Makevars
-    echo "PKG_CFLAGS = -DCHECK_EXACT_SHM_OBJ_SIZE" >> src/Makevars
+    cp src/Makevars.linux src/Makevars
     ;;
   sunos*)
-    echo "PKG_LIBS = -lrt" > src/Makevars
-    echo "PKG_CFLAGS = -DCHECK_EXACT_SHM_OBJ_SIZE" >> src/Makevars
+    cp src/Makevars.solaris src/Makevars
+
+    # if we are about to use the C99 compiler from Oracle Developer Studio
+    # (cc -xc99) we need to substitute -xc99 with -std=c11 to allow for _Generic
+    # selection
+    CC=`"${R_HOME}/bin/R" CMD config CC`
+    CC11=`echo "$CC" | sed 's/-xc99$/-std=c11/'`
+    echo "CC11 = $CC11" >> src/Makevars
     ;;
   darwin*)
     ;;
