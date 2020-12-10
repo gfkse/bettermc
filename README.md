@@ -3,7 +3,7 @@
 [![R build
 status](https://github.com/gfkse/bettermc/workflows/R-CMD-check/badge.svg)](https://github.com/gfkse/bettermc/actions?workflow=R-CMD-check)
 [![codecov](https://codecov.io/gh/gfkse/bettermc/branch/master/graph/badge.svg?token=FYYM156COF)](https://codecov.io/gh/gfkse/bettermc)
-[![rchk](https://github.com/gfkse/bettermc/workflows/rchk/badge.svg)](\(https://github.com/gfkse/bettermc/actions?workflow=rchk\))
+[![rchk](https://github.com/gfkse/bettermc/workflows/rchk/badge.svg)](https://github.com/gfkse/bettermc/actions?workflow=rchk)
 
 The `bettermc` package provides a wrapper around the
 `parallel::mclapply` function for better performance, error handling and
