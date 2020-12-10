@@ -9,9 +9,20 @@ The `bettermc` package provides a wrapper around the
 `parallel::mclapply` function for better performance, error handling and
 UX.
 
-**Note:** As of now this package only works on Linux, not macOS. Windows
-will never be supported as `parallel::mclapply` itself does not support
-it.
+## Installation of the Development Version
+
+``` r
+# install.packages("devtools")
+devtools::install_github("gfkse/bettermc")
+```
+
+## Supported Platforms
+
+`bettermc` was originally developed for 64-bit Linux. By now it should
+also compile and run on 32-bit systems, and on macOS and Solaris.
+However, as stated in the respective help pages, not all features are
+supported on macOS. Porting to other POSIX-compliant Unix flavors should
+be fairly straightforward. Windows is not supported.
 
 ## Features
 
@@ -107,11 +118,11 @@ microbenchmark::microbenchmark(
 
     ## Unit: milliseconds
     ##       expr       min        lq      mean    median        uq       max neval
-    ##  bettermc1  290.0381  301.7096  320.2449  312.3831  340.7723  375.8056    10
-    ##  bettermc2  574.2776  583.0323  652.8619  600.7823  667.3698  970.8116    10
-    ##  bettermc3 1017.0415 1054.2873 1092.2762 1076.4731 1106.3628 1300.8237    10
-    ##  bettermc4  873.2696 1044.7785 1171.3308 1157.7447 1289.2521 1446.0259    10
-    ##   parallel 1067.6360 1195.5375 1371.1622 1257.5502 1353.7738 2050.8321    10
+    ##  bettermc1  413.2336  437.9781  454.7439  446.8591  455.6911  513.3933    10
+    ##  bettermc2  800.6699  838.7094  898.8214  885.7591  943.9600 1048.1801    10
+    ##  bettermc3 1646.6116 1700.5796 1846.0228 1721.1778 2136.8495 2207.5088    10
+    ##  bettermc4 1468.5487 1604.1130 1906.6661 1864.3084 2172.9592 2525.8540    10
+    ##   parallel 1487.4475 1630.4703 1951.4752 1955.1688 2050.2836 2720.9375    10
 
 In examples `bettermc1` and `bettermc2`, the child processes place the
 columns of the return value `X` in shared memory. The object which needs
@@ -188,8 +199,8 @@ microbenchmark::microbenchmark(
 
     ## Unit: seconds
     ##       expr       min        lq      mean    median        uq       max neval
-    ##  bettermc1  4.547525  4.547525  4.547525  4.547525  4.547525  4.547525     1
-    ##   parallel 31.059487 31.059487 31.059487 31.059487 31.059487 31.059487     1
+    ##  bettermc1  7.990312  7.990312  7.990312  7.990312  7.990312  7.990312     1
+    ##   parallel 42.785266 42.785266 42.785266 42.785266 42.785266 42.785266     1
 
 By default, `bettermc` replaces character vectors with objects of type
 `char_map` before returning them to the parent process:
@@ -200,8 +211,8 @@ str(X_comp)
 ```
 
     ## List of 3
-    ##  $ chars     : chr [1:999856] "0.956617942545563" "0.777563852956519" "0.742107977392152" "0.901834991294891" ...
-    ##  $ idx       : int [1:30000000] 28012 28013 28014 28015 28016 28017 28018 28019 28020 28021 ...
+    ##  $ chars     : chr [1:999896] "0.114927629008889" "0.827044223435223" "0.576822346542031" "0.827876724535599" ...
+    ##  $ idx       : int [1:30000000] 32538 32539 32540 32541 32542 32543 32544 32545 32546 32547 ...
     ##  $ attributes: NULL
     ##  - attr(*, "class")= chr "char_map"
 
@@ -232,5 +243,5 @@ microbenchmark::microbenchmark(
 
     ## Unit: seconds
     ##      expr      min       lq     mean   median       uq      max neval
-    ##  char_map 1.288056 1.303647 1.312008 1.319238 1.323984 1.328730     3
-    ##     match 3.942771 3.980546 3.996469 4.018322 4.023318 4.028314     3
+    ##  char_map 1.598385 1.624316 1.642065 1.650246 1.663906 1.677565     3
+    ##     match 7.093903 7.112660 7.295698 7.131416 7.396595 7.661773     3

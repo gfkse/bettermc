@@ -16,7 +16,18 @@ knitr::opts_chunk$set(cache = TRUE)
 
 The `bettermc` package provides a wrapper around the `parallel::mclapply` function for better performance, error handling and UX. 
 
-**Note:** As of now this package only works on Linux, not macOS. Windows will never be supported as `parallel::mclapply` itself does not support it.
+## Installation of the Development Version
+```{r, eval = FALSE}
+# install.packages("devtools")
+devtools::install_github("gfkse/bettermc")
+```
+
+## Supported Platforms
+`bettermc` was originally developed for 64-bit Linux. 
+By now it should also compile and run on 32-bit systems, and on macOS and Solaris.
+However, as stated in the respective help pages, not all features are supported on macOS.
+Porting to other POSIX-compliant Unix flavors should be fairly straightforward.
+Windows is not supported.
 
 ## Features
 Here is a short overview on its main features ...
