@@ -7,8 +7,6 @@ test_that("semaphores work", {
   sem_post(s)
   sem_wait(s)
   sem_close(s)
-  sem_close(s)
-  expect_error(sem_close(s))
   sem_unlink("/bmc_sem_test")
   expect_error(sem_unlink("/bmc_sem_test"))
 })
