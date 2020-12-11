@@ -21,9 +21,7 @@ SEXP semaphore_open(SEXP n, SEXP create, SEXP overwrite, SEXP value) {
   }
 
   if (sem == SEM_FAILED) {
-    char buf[100];
-    snprintf(buf, 100, "'sem_open' failed with '%s'", strerror(errno));
-    return mkString(buf);
+    error("'sem_open' failed with '%s'", strerror(errno));
   }
 
   return R_MakeExternalPtr(sem, R_NilValue, R_NilValue);
@@ -31,9 +29,7 @@ SEXP semaphore_open(SEXP n, SEXP create, SEXP overwrite, SEXP value) {
 
 SEXP semaphore_post(SEXP sem) {
   if (sem_post(R_ExternalPtrAddr(sem)) == -1) {
-    char buf[100];
-    snprintf(buf, 100, "'sem_post' failed with '%s'", strerror(errno));
-    return mkString(buf);
+    error("'sem_post' failed with '%s'", strerror(errno));
   }
 
   return R_NilValue;
@@ -41,9 +37,7 @@ SEXP semaphore_post(SEXP sem) {
 
 SEXP semaphore_wait(SEXP sem) {
   if (sem_wait(R_ExternalPtrAddr(sem)) == -1) {
-    char buf[100];
-    snprintf(buf, 100, "'sem_wait' failed with '%s'", strerror(errno));
-    return mkString(buf);
+    error("'sem_wait' failed with '%s'", strerror(errno));
   }
 
   return R_NilValue;
@@ -51,9 +45,7 @@ SEXP semaphore_wait(SEXP sem) {
 
 SEXP semaphore_close(SEXP sem) {
   if (sem_close(R_ExternalPtrAddr(sem)) == -1) {
-    char buf[100];
-    snprintf(buf, 100, "'sem_close' failed with '%s'", strerror(errno));
-    return mkString(buf);
+    error("'sem_close' failed with '%s'", strerror(errno));
   }
 
   return R_NilValue;
@@ -62,9 +54,7 @@ SEXP semaphore_close(SEXP sem) {
 SEXP semaphore_unlink(SEXP n) {
   const char *name = CHAR(STRING_ELT(n, 0));
   if (sem_unlink(name) == -1) {
-    char buf[100];
-    snprintf(buf, 100, "'sem_unlink' failed with '%s'", strerror(errno));
-    return mkString(buf);
+    error("'sem_unlink' failed with '%s'", strerror(errno));
   }
 
   return R_NilValue;
