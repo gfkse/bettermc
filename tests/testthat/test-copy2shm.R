@@ -67,3 +67,8 @@ for (copy in c(TRUE, FALSE)) {
   })
 }
 
+test_that("MADV_HUGEPAGE does not cause issues", {
+  opt_bak <- options(bettermc.hugepage_limit = 0L)
+  expect_identical(allocate_from_shm(copy2shm(1:10, "/bmc_hugepage_test")), 1:10)
+  options(opt_bak)
+})
