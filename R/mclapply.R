@@ -293,12 +293,10 @@ mclapply <- function(X, FUN, ...,
     if (mc.warnings == "signal") {
       whandler <- function(w) {
         warnings <<- c(warnings, list(w))
-        tryInvokeRestart("muffleWarning")
       }
     } else if (mc.warnings == "output") {
       whandler <- function(w) {
         cat(capture.output(print(w)), "\n", file = stderr_pipe)
-        tryInvokeRestart("muffleWarning")
       }
 
     } else if (mc.warnings == "stop") {
@@ -308,22 +306,20 @@ mclapply <- function(X, FUN, ...,
         stop(w)
       }
     } else {
-      whandler <- function(w) tryInvokeRestart("muffleWarning")
+      whandler <- function(w) NULL
     }
 
     messages <- list()
     if (mc.messages == "signal") {
       mhandler <- function(m) {
         messages <<- c(messages, list(m))
-        tryInvokeRestart("muffleMessage")
       }
     } else if (mc.messages == "output") {
       mhandler <- function(m) {
         cat(capture.output(print(m)), "\n", file = stderr_pipe)
-        tryInvokeRestart("muffleMessage")
       }
     } else {
-      mhandler <- function(m) tryInvokeRestart("muffleMessage")
+      mhandler <- function(m) NULL
     }
 
     # evaluate FUN and handle errors (etry), warnings and messages;
