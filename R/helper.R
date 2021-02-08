@@ -9,3 +9,7 @@
 is.uneval.promise <- function(name, env) {
   .Call(C_is_uneval_promise, name = name, env = env)
 }
+
+is.missing.arg <- function(name, env) {
+  eval(parse(text = paste0("base::missing(", name, ")")), env)
+}

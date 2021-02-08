@@ -22,10 +22,11 @@ vectors2shm <- function(l, limit = 2L,
     class(l) <- NULL
 
     idx <- if (is.list(l)) {
-      seq_along(l)
+      which(vapply(l, function(e) !identical(e, quote(expr = )), logical(1)))
     } else {
       all_names <- names(l)
       ok_names <-
+        !vapply(all_names, is.missing.arg, logical(1), env = l) &
         !vapply(all_names, is.uneval.promise, logical(1), env = l) &
         !vapply(all_names, bindingIsActive, logical(1), env = l) &
         !vapply(all_names, bindingIsLocked, logical(1), env = l)
@@ -85,10 +86,11 @@ shm2vectors <- function(l) {
     class(l) <- NULL
 
     idx <- if (is.list(l)) {
-      seq_along(l)
+      which(vapply(l, function(e) !identical(e, quote(expr = )), logical(1)))
     } else {
       all_names <- names(l)
       ok_names <-
+        !vapply(all_names, is.missing.arg, logical(1), env = l) &
         !vapply(all_names, is.uneval.promise, logical(1), env = l) &
         !vapply(all_names, bindingIsActive, logical(1), env = l) &
         !vapply(all_names, bindingIsLocked, logical(1), env = l)

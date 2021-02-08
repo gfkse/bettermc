@@ -131,6 +131,24 @@ test_that("returning recursive environments using shared memory works", {
   )
 })
 
+test_that("returning special vaules works correctly", {
+  env <- new.env()
+  env[["locked"]] <- c(1, 3, 5)
+  lockBinding("locked", env)
+  makeActiveBinding("active", function(x) "active", env)
+  env[["missing"]] <- quote(expr = )
+  lockEnvironment(env)
+
+  expect_equal(bettermc::mclapply(1:2, function(i) env),
+               list(env, env))
+  expect_equal(bettermc::mclapply(1:2, function(i) as.list(env)),
+               list(as.list(env), as.list(env)))
+
+  env <- new.env()
+  delayedAssign("promise", stop("I am a promise!"), env, env)
+  expect_silent(bettermc::mclapply(1:2, function(i) env))
+})
+
 test_that("mclapply handles non-fatal error correctly", {
   expect_error(bettermc::mclapply(1:2, function(i) stop(i), mc.shm.ipc = TRUE),
                "error(s) occured during mclapply; first original message", fixed = TRUE)
