@@ -183,3 +183,8 @@ test_that("mclapply handles warnings correctly", {
                "(converted from warning)", fixed = TRUE)
   expect_silent(bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "ignore"))
 })
+
+test_that("... is not forcefully evaluated", {
+  expect_identical(bettermc::mclapply(1:2, function(i, j) i, j = stop("eee")),
+                   list(1L, 2L))
+})

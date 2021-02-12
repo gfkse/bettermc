@@ -251,10 +251,10 @@ mclapply <- function(X, FUN, ...,
 
   # this closure is the FUN which we call using parallel::mclapply below
   # - it does not operate on X but rather on seq_along(X) in order to know which
-  #   element is currently being processed (idx)
+  #   element is currently being processed (mc.X.idx)
   # - the result is wrapped in list() to differentiate a legitimate NULL from a
   #   fatal error
-  wrapper <- function(...) {
+  wrapper <- function(mc.X.idx, ...) {
     # update progress bar once we are done
     if (mc.progress) on.exit(sem_post(sem), add = TRUE)
 
@@ -262,17 +262,14 @@ mclapply <- function(X, FUN, ...,
     if (mc.fail.early && file.exists(error_file))
       return(list(simpleError("failing early due to another error")))
 
-    # get idx from args and replace it with corresponding element from X
-    args <- list(...)
-    idx <- args[[1L]]
-    args[1L] <- list(X[[idx]])  # list() because X[[idx]] could be NULL
+    X <- X[[mc.X.idx]]
 
     if (OSTYPE == "linux") {
-      stdout_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&1", idx))
-      stderr_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&2", idx))
+      stdout_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&1", mc.X.idx))
+      stderr_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&2", mc.X.idx))
     } else if (OSTYPE %in% c("macos", "solaris")) {
-      stdout_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&1", idx))
-      stderr_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&2", idx))
+      stdout_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&1", mc.X.idx))
+      stderr_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&2", mc.X.idx))
     } else {
       stop("unexpected value for OSTYPE: ", OSTYPE)
     }
@@ -287,7 +284,7 @@ mclapply <- function(X, FUN, ...,
     on.exit(close(stdout_pipe), add = TRUE)
     on.exit(close(stderr_pipe), add = TRUE)
 
-    shm_prefix <- paste0(shm_prefix, idx, "_")
+    shm_prefix <- paste0(shm_prefix, mc.X.idx, "_")
 
     warnings <- list()
     if (mc.warnings == "signal") {
@@ -326,14 +323,14 @@ mclapply <- function(X, FUN, ...,
     # res is always a one-element list except in case of error when it is an
     # etry-error-object
     if (mc.stdout == "output") {
-      res <- etry(withCallingHandlers(list(do.call(FUN, args)),
+      res <- etry(withCallingHandlers(list(FUN(X, ...)),
                                       warning = whandler,
                                       message = mhandler),
                   silent = TRUE, dump.frames = mc.dump.frames,
                   TB_skip_before = 14L, TB_skip_after = 2L)
     } else {
       output <- capture.output(
-        res <- etry(withCallingHandlers(list(do.call(FUN, args)),
+        res <- etry(withCallingHandlers(list(FUN(X, ...)),
                                         warning = whandler,
                                         message = mhandler),
                     silent = TRUE, dump.frames = mc.dump.frames,
