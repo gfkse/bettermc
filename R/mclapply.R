@@ -254,6 +254,7 @@ mclapply <- function(X, FUN, ...,
   #   element is currently being processed (mc.X.idx)
   # - the result is wrapped in list() to differentiate a legitimate NULL from a
   #   fatal error
+  warning_from_user_code <- FALSE
   wrapper <- function(mc.X.idx, ...) {
     # update progress bar once we are done
     if (mc.progress) on.exit(sem_post(sem), add = TRUE)
@@ -289,20 +290,24 @@ mclapply <- function(X, FUN, ...,
     warnings <- list()
     if (mc.warnings == "signal") {
       whandler <- function(w) {
+        warning_from_user_code <<- TRUE
         warnings <<- c(warnings, list(w))
       }
     } else if (mc.warnings == "output") {
       whandler <- function(w) {
+        warning_from_user_code <<- TRUE
         cat(capture.output(print(w)), "\n", file = stderr_pipe)
       }
 
     } else if (mc.warnings == "stop") {
       whandler <- function(w) {
+        warning_from_user_code <<- TRUE
         w$message <- paste0("(converted from warning) ", w$message)
         attr(w, "class") <- c("simpleError", "error", "condition")
         stop(w)
       }
     } else {
+      warning_from_user_code <<- TRUE
       whandler <- function(w) NULL
     }
 
@@ -377,14 +382,20 @@ mclapply <- function(X, FUN, ...,
   }
 
   # parallel-apply wrapper to seq_along(X)
-  suppressWarnings(
+  withCallingHandlers(
     res <- parallel::mclapply(
       X = seq_along(X), FUN = wrapper, ... = ...,
       mc.preschedule = mc.preschedule, mc.set.seed = mc.set.seed,
       mc.silent = mc.silent, mc.cores = mc.cores,
       mc.cleanup = mc.cleanup, mc.allow.recursive = mc.allow.recursive,
       affinity.list = affinity.list
-    )
+    ),
+    warning = function(w) {
+      if (!warning_from_user_code) {
+        tryInvokeRestart("muffleWarning")
+      }
+      warning_from_user_code <<- FALSE
+    }
   )
 
   # if there is an error in our wrapper code it will be caught by the
