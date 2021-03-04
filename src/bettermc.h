@@ -24,6 +24,11 @@ SEXP semaphore_wait(SEXP);
 SEXP semaphore_close(SEXP);
 SEXP semaphore_unlink(SEXP);
 
+SEXP semaphorev_open(SEXP);
+SEXP semaphorev_post(SEXP, SEXP);
+SEXP semaphorev_wait(SEXP, SEXP);
+SEXP semaphorev_unlink(SEXP);
+
 SEXP is_uneval_promise(SEXP, SEXP);
 
 #endif
