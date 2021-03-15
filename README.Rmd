@@ -141,18 +141,18 @@ microbenchmark::microbenchmark(
 
 By default, `bettermc` replaces character vectors with objects of type `char_map` before returning them to the parent process:
 ```{r}
-X_comp <- bettermc:::compress_chars(X)
+X_comp <- bettermc::compress_chars(X)
 str(X_comp)
 ```
 
 The important detail here is the length of the `chars` vector, which just contains the unique elements of `X` and hence is significantly faster to (de)serialize than the original vector. The parent process can recover the original character vectors:
 
 ```{r}
-Y <- bettermc:::uncompress_chars(X_comp)
+Y <- bettermc::uncompress_chars(X_comp)
 stopifnot(identical(X, Y))
 ```
 
-The internal functions `compress_chars()` and `uncompress_chars()` recursively walk the return value and apply the exported functions `char_map()` and `map2char()`, respectively.
+The functions `compress_chars()` and `uncompress_chars()` recursively walk the return value and apply the functions `char_map()` and `map2char()`, respectively.
 
 `char_map()` is implemented using a radix sort, which makes it very efficient:
 ```{r}

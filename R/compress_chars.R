@@ -1,3 +1,19 @@
+#' Recursively Call \code{\link{char_map}}/\code{\link{map2char}} on an Object
+#'
+#' @param l an object, typically a list or an environment
+#' @param limit the minimum length of a character vector for
+#'   \code{\link{char_map}} to be applied
+#' @param compress_altreps should a character vector be compressed if it is an
+#'   ALTREP? The default "if_allocated" only does so if the regular
+#'   representation was already created. This was chosen as the default because
+#'   in this case is is the regular representation which would be serialized.
+#'
+#' @note The object returned by \code{compress_chars} might be an invalid S3
+#'   object, e.g. if \code{l} is a data frame. These functions are intended to
+#'   be called immediately before and after (de)serializing the object, i.e.
+#'   compress -> serialize -> store/transfer -> de-serialize -> uncompress.
+#'
+#' @export
 compress_chars <- function(l, limit = 0L,
                            compress_altreps = c("if_allocated", "yes", "no")) {
   compress_altreps <- match.arg(compress_altreps)
@@ -51,6 +67,9 @@ compress_chars <- function(l, limit = 0L,
   }
 }
 
+#' @rdname compress_chars
+#'
+#' @export
 uncompress_chars <- function(l) {
   uncompress_chars_core <- function(l) {
     if (isS4(l)) return(l)

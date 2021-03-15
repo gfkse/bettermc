@@ -41,15 +41,15 @@ bettermc::mclapply(1:2, f)
 
     ## Error in bettermc::mclapply(1:2, f) :
     ##   error(s) occured during mclapply; first original message:
-    
+
     ## Error: non-numeric argument to binary operator
-    
+
     ## Traceback:
     ## 3: g(as.character(x))
     ## 2: (function (x) 
     ##    g(as.character(x)))(1L)
     ## 1: bettermc::mclapply(1:2, f)
-    
+
     ## Crash dump avilable. Use 'debugger(attr(*, "dump.frames"))' for debugging.
 
 ``` r
@@ -62,7 +62,7 @@ debugger(attr(last.dump[[1L]], "dump.frames"))
     ## 1: (function (x) 
     ## g(as.character(x)))(1)
     ## 2: #1: g(as.character(x))
-    
+
     ## Enter an environment number, or 0 to exit  
     ## Selection: 0
 
@@ -206,13 +206,13 @@ By default, `bettermc` replaces character vectors with objects of type
 `char_map` before returning them to the parent process:
 
 ``` r
-X_comp <- bettermc:::compress_chars(X)
+X_comp <- bettermc::compress_chars(X)
 str(X_comp)
 ```
 
     ## List of 3
-    ##  $ chars     : chr [1:999896] "0.114927629008889" "0.827044223435223" "0.576822346542031" "0.827876724535599" ...
-    ##  $ idx       : int [1:30000000] 32538 32539 32540 32541 32542 32543 32544 32545 32546 32547 ...
+    ##  $ chars     : chr [1:999896] "0.221996400272474" "0.219319898169488" "0.627548369579017" "0.1049316492863" ...
+    ##  $ idx       : int [1:30000000] 76539 76540 76541 76542 76543 76544 76545 76546 76547 76548 ...
     ##  $ attributes: NULL
     ##  - attr(*, "class")= chr "char_map"
 
@@ -222,13 +222,13 @@ faster to (de)serialize than the original vector. The parent process can
 recover the original character vectors:
 
 ``` r
-Y <- bettermc:::uncompress_chars(X_comp)
+Y <- bettermc::uncompress_chars(X_comp)
 stopifnot(identical(X, Y))
 ```
 
-The internal functions `compress_chars()` and `uncompress_chars()`
-recursively walk the return value and apply the exported functions
-`char_map()` and `map2char()`, respectively.
+The functions `compress_chars()` and `uncompress_chars()` recursively
+walk the return value and apply the functions `char_map()` and
+`map2char()`, respectively.
 
 `char_map()` is implemented using a radix sort, which makes it very
 efficient:
