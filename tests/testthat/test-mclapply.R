@@ -182,6 +182,87 @@ test_that("mclapply handles warnings correctly", {
   expect_error(bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "stop"),
                "(converted from warning)", fixed = TRUE)
   expect_silent(bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "ignore"))
+
+  ppid <- Sys.getpid()
+  expect_warning(
+    withCallingHandlers({
+      bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "m_signal")
+      bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "m_output")
+      bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "m_ignore")
+    }, warning = function(w) if (Sys.getpid() != ppid) stop())
+  )
+
+  expect_error(
+    tryCatch({
+      bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "signal")
+    }, warning = function(w) NULL)
+  )
+
+  expect_error(
+    tryCatch({
+      bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "output")
+    }, warning = function(w) NULL)
+  )
+
+  expect_error(
+    tryCatch({
+      bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "ignore")
+    }, warning = function(w) NULL)
+  )
+})
+
+test_that("mclapply handles messages correctly", {
+  expect_message(bettermc::mclapply(1:2, function(i) message(i)),
+                 "1: 1", fixed = TRUE)
+  expect_silent(bettermc::mclapply(1:2, function(i) message(i), mc.messages = "ignore"))
+
+  ppid <- Sys.getpid()
+  expect_message(
+    withCallingHandlers({
+      bettermc::mclapply(1:2, function(i) message(i), mc.messages = "m_signal")
+      bettermc::mclapply(1:2, function(i) message(i), mc.messages = "m_output")
+      bettermc::mclapply(1:2, function(i) message(i), mc.messages = "m_ignore")
+    }, message = function(m) if (Sys.getpid() != ppid) stop())
+  )
+
+  expect_error(
+    tryCatch({
+      bettermc::mclapply(1:2, function(i) message(i), mc.messages = "signal")
+    }, message = function(m) NULL)
+  )
+
+  expect_error(
+    tryCatch({
+      bettermc::mclapply(1:2, function(i) message(i), mc.messages = "output")
+    }, message = function(m) NULL)
+  )
+
+  expect_error(
+    tryCatch({
+      bettermc::mclapply(1:2, function(i) message(i), mc.messages = "ignore")
+    }, message = function(m) NULL)
+  )
+})
+
+test_that("mclapply handles conditions correctly", {
+  expect_silent(
+    withCallingHandlers(bettermc::mclapply(1:2, function(i) signalCondition(simpleCondition(i)),
+                                           mc.conditions = "ignore", mc.stdout = "output"),
+                        condition = function(cond) print(cond))
+  )
+
+  expect_output(
+    withCallingHandlers(bettermc::mclapply(1:2, function(i) signalCondition(simpleCondition(i)),
+                                           mc.conditions = "signal", mc.stdout = "output"),
+                        condition = function(cond) print(cond)),
+    regexp = "simpleCondition"
+  )
+
+  expect_silent(
+    withCallingHandlers(bettermc::mclapply(1:2, function(i) warning(i),
+                                           mc.conditions = "signal", mc.warnings = "ignore"),
+                        condition = function(cond) if (!inherits(cond, "warning")) print(cond))
+  )
 })
 
 test_that("... is not forcefully evaluated", {

@@ -30,13 +30,16 @@
 #'  parent process such that it can be captured, sinked etc. there. "output"
 #'  directly forwards the output to stdout of the parent; it cannot be captured,
 #'  sinked etc. there.
-#'@param mc.warnings,mc.messages how should warnings and messages in the child
-#'  processes be handled? The default "signal" records all warnings/messages in
-#'  the child processes and signals them in the master process. "stop" converts
-#'  warnings (only) into non-fatal errors in the child processes directly.
-#'  "output" directly forwards the messages to stderr of the parent; no
-#'  condition is signalled in the parent process nor is the output
-#'  capturable/sinkable. "ignore" does the obvious.
+#'@param mc.warnings,mc.messages,mc.conditions how should warnings, messages and
+#'  other conditions in the child processes be handled? "signal" records all
+#'  warnings/messages/conditions in the child processes and signals them in the
+#'  master process. "stop" converts warnings (only) into non-fatal errors in the
+#'  child processes directly. "output" directly forwards the messages to stderr
+#'  of the parent; no condition is signalled in the parent process nor is the
+#'  output capturable/sinkable. "ignore" means that the conditions are not
+#'  forwarded in any way to the parent process. Options prefixed with "m"
+#'  additionally try to invoke the "muffleWarning"/"muffleMessage" restart in
+#'  the child process.
 #'@param mc.compress.chars should character vectors be compressed using
 #'  \code{\link{char_map}}? Can also be the minimum length of character vectors
 #'  for which to enable compression. This generally increases performance
@@ -67,14 +70,13 @@
 #'@section POSIX Shared Memory: The shared memory objects created by
 #'  \code{mclapply} are named as follows (this may be subject to change):
 #'  \code{/bmc_ppid_timestamp_idx_cntr} (e.g.
-#'  \code{/bmc_21479_1601366973201_16_10}), with
-#'  \describe{\item{ppid}{the process id of the parent
-#'  process.}\item{timestamp}{the time at which \code{mclapply} was invoked (in
-#'  milliseconds since epoch).}\item{idx}{the index of the current element of
-#'  \code{X} (1-based).}\item{cntr}{an internal counter (1-based) referring to
-#'  all the objects created due to \code{mc.share.vectors} for the current value
-#'  of \code{X}; a value of \code{0} is used for the object created due to
-#'  \code{mc.shm.ipc}.}}
+#'  \code{/bmc_21479_1601366973201_16_10}), with \describe{\item{ppid}{the
+#'  process id of the parent process.}\item{timestamp}{the time at which
+#'  \code{mclapply} was invoked (in milliseconds since epoch).}\item{idx}{the
+#'  index of the current element of \code{X} (1-based).}\item{cntr}{an internal
+#'  counter (1-based) referring to all the objects created due to
+#'  \code{mc.share.vectors} for the current value of \code{X}; a value of
+#'  \code{0} is used for the object created due to \code{mc.shm.ipc}.}}
 #'
 #'  \code{bettermc::mclapply} does not err if copying data to shared memory
 #'  fails. It will rather only print a message and return results the usual way.
@@ -126,8 +128,11 @@ mclapply <- function(X, FUN, ...,
                      mc.dumpto = ifelse(interactive(), "last.dump",
                                         "file://last.dump.rds"),
                      mc.stdout = c("capture", "output"),
-                     mc.warnings = c("signal", "output", "stop", "ignore"),
-                     mc.messages = c("signal", "output", "ignore"),
+                     mc.warnings = c("m_signal", "signal", "m_output", "output",
+                                     "m_ignore", "ignore", "stop"),
+                     mc.messages = c("m_signal", "signal", "m_output", "output",
+                                     "m_ignore", "ignore"),
+                     mc.conditions = c("signal", "ignore"),
                      mc.compress.chars = TRUE,
                      mc.compress.altreps = c("if_allocated", "yes", "no"),
                      mc.share.vectors = getOption("bettermc.use_shm", TRUE),
@@ -150,7 +155,14 @@ mclapply <- function(X, FUN, ...,
   mc.dump.frames <- match.arg(mc.dump.frames)
   mc.stdout <- match.arg(mc.stdout)
   mc.warnings <- match.arg(mc.warnings)
+  if (mc.muffle_warnings <- grepl("^m_", mc.warnings)) {
+    mc.warnings <- sub("^m_", "", mc.warnings)
+  }
   mc.messages <- match.arg(mc.messages)
+  if (mc.muffle_messages <- grepl("^m_", mc.messages)) {
+    mc.messages <- sub("^m_", "", mc.messages)
+  }
+  mc.conditions <- match.arg(mc.conditions)
   mc.compress.altreps <- match.arg(mc.compress.altreps)
   mc.share.altreps <- match.arg(mc.share.altreps)
 
@@ -290,38 +302,68 @@ mclapply <- function(X, FUN, ...,
     warnings <- list()
     if (mc.warnings == "signal") {
       whandler <- function(w) {
-        warning_from_user_code <<- TRUE
         warnings <<- c(warnings, list(w))
+        if (mc.muffle_warnings) {
+          tryInvokeRestart("muffleWarning")
+        }
+        warning_from_user_code <<- TRUE
       }
     } else if (mc.warnings == "output") {
       whandler <- function(w) {
-        warning_from_user_code <<- TRUE
         cat(capture.output(print(w)), "\n", file = stderr_pipe)
+        if (mc.muffle_warnings) {
+          tryInvokeRestart("muffleWarning")
+        }
+        warning_from_user_code <<- TRUE
       }
 
     } else if (mc.warnings == "stop") {
       whandler <- function(w) {
-        warning_from_user_code <<- TRUE
         w$message <- paste0("(converted from warning) ", w$message)
         attr(w, "class") <- c("simpleError", "error", "condition")
         stop(w)
       }
     } else {
-      warning_from_user_code <<- TRUE
-      whandler <- function(w) NULL
+      whandler <- function(w) {
+        if (mc.muffle_warnings) {
+          tryInvokeRestart("muffleWarning")
+        }
+        warning_from_user_code <<- TRUE
+      }
     }
 
     messages <- list()
     if (mc.messages == "signal") {
       mhandler <- function(m) {
         messages <<- c(messages, list(m))
+        if (mc.muffle_messages) {
+          tryInvokeRestart("muffleMessage")
+        }
       }
     } else if (mc.messages == "output") {
       mhandler <- function(m) {
         cat(capture.output(print(m)), "\n", file = stderr_pipe)
+        if (mc.muffle_messages) {
+          tryInvokeRestart("muffleMessage")
+        }
       }
     } else {
-      mhandler <- function(m) NULL
+      mhandler <- function(m) {
+        if (mc.muffle_messages) {
+          tryInvokeRestart("muffleMessage")
+        }
+      }
+    }
+
+    conditions <- list()
+    if (mc.conditions == "signal") {
+      chandler <- function(cond) {
+        if (!inherits(cond, c("error", "warning", "message"))) {
+          conditions <<- c(conditions, list(cond))
+        }
+      }
+    } else {
+      chandler <- function(cond) NULL
     }
 
     # evaluate FUN and handle errors (etry), warnings and messages;
@@ -330,14 +372,16 @@ mclapply <- function(X, FUN, ...,
     if (mc.stdout == "output") {
       res <- etry(withCallingHandlers(list(FUN(X, ...)),
                                       warning = whandler,
-                                      message = mhandler),
+                                      message = mhandler,
+                                      condition = chandler),
                   silent = TRUE, dump.frames = mc.dump.frames,
                   TB_skip_before = 14L, TB_skip_after = 2L)
     } else {
       output <- capture.output(
         res <- etry(withCallingHandlers(list(FUN(X, ...)),
                                         warning = whandler,
-                                        message = mhandler),
+                                        message = mhandler,
+                                        condition = chandler),
                     silent = TRUE, dump.frames = mc.dump.frames,
                     TB_skip_before = 19L, TB_skip_after = 2L)
       )
@@ -350,6 +394,7 @@ mclapply <- function(X, FUN, ...,
 
     if (length(warnings)) attr(res, "bettermc_warnings") <- warnings
     if (length(messages)) attr(res, "bettermc_messages") <- messages
+    if (length(conditions)) attr(res, "bettermc_conditions") <- conditions
 
     if (!is.infinite(mc.compress.chars)) {
       res <- compress_chars(res, limit = mc.compress.chars,
@@ -492,6 +537,19 @@ mclapply <- function(X, FUN, ...,
           message(m)
         })
         attr(e, "bettermc_messages") <- NULL
+      }
+    })
+  }
+
+  if (mc.conditions == "signal") {
+    lapply(seq_along(res), function(i) {
+      e <- res[[i]]
+      if (!is.null(attr(e, "bettermc_conditions"))) {
+        lapply(attr(e, "bettermc_conditions"), function(cond) {
+          cond$message <- sprintf("%5d: %s", i, cond$message)
+          signalCondition(cond)
+        })
+        attr(e, "bettermc_conditions") <- NULL
       }
     })
   }

@@ -21,8 +21,10 @@ mclapply(
   mc.dump.frames = c("partial", "full", "no"),
   mc.dumpto = ifelse(interactive(), "last.dump", "file://last.dump.rds"),
   mc.stdout = c("capture", "output"),
-  mc.warnings = c("signal", "output", "stop", "ignore"),
-  mc.messages = c("signal", "output", "ignore"),
+  mc.warnings = c("m_signal", "signal", "m_output", "output", "m_ignore", "ignore",
+    "stop"),
+  mc.messages = c("m_signal", "signal", "m_output", "output", "m_ignore", "ignore"),
+  mc.conditions = c("signal", "ignore"),
   mc.compress.chars = TRUE,
   mc.compress.altreps = c("if_allocated", "yes", "no"),
   mc.share.vectors = getOption("bettermc.use_shm", TRUE),
@@ -108,13 +110,16 @@ parent process such that it can be captured, sinked etc. there. "output"
 directly forwards the output to stdout of the parent; it cannot be captured,
 sinked etc. there.}
 
-\item{mc.warnings, mc.messages}{how should warnings and messages in the child
-processes be handled? The default "signal" records all warnings/messages in
-the child processes and signals them in the master process. "stop" converts
-warnings (only) into non-fatal errors in the child processes directly.
-"output" directly forwards the messages to stderr of the parent; no
-condition is signalled in the parent process nor is the output
-capturable/sinkable. "ignore" does the obvious.}
+\item{mc.warnings, mc.messages, mc.conditions}{how should warnings, messages and
+other conditions in the child processes be handled? "signal" records all
+warnings/messages/conditions in the child processes and signals them in the
+master process. "stop" converts warnings (only) into non-fatal errors in the
+child processes directly. "output" directly forwards the messages to stderr
+of the parent; no condition is signalled in the parent process nor is the
+output capturable/sinkable. "ignore" means that the conditions are not
+forwarded in any way to the parent process. Options prefixed with "m"
+additionally try to invoke the "muffleWarning"/"muffleMessage" restart in
+the child process.}
 
 \item{mc.compress.chars}{should character vectors be compressed using
 \code{\link{char_map}}? Can also be the minimum length of character vectors
@@ -164,14 +169,13 @@ improve performance. \item display a progress bar.}
  The shared memory objects created by
  \code{mclapply} are named as follows (this may be subject to change):
  \code{/bmc_ppid_timestamp_idx_cntr} (e.g.
- \code{/bmc_21479_1601366973201_16_10}), with
- \describe{\item{ppid}{the process id of the parent
- process.}\item{timestamp}{the time at which \code{mclapply} was invoked (in
- milliseconds since epoch).}\item{idx}{the index of the current element of
- \code{X} (1-based).}\item{cntr}{an internal counter (1-based) referring to
- all the objects created due to \code{mc.share.vectors} for the current value
- of \code{X}; a value of \code{0} is used for the object created due to
- \code{mc.shm.ipc}.}}
+ \code{/bmc_21479_1601366973201_16_10}), with \describe{\item{ppid}{the
+ process id of the parent process.}\item{timestamp}{the time at which
+ \code{mclapply} was invoked (in milliseconds since epoch).}\item{idx}{the
+ index of the current element of \code{X} (1-based).}\item{cntr}{an internal
+ counter (1-based) referring to all the objects created due to
+ \code{mc.share.vectors} for the current value of \code{X}; a value of
+ \code{0} is used for the object created due to \code{mc.shm.ipc}.}}
 
  \code{bettermc::mclapply} does not err if copying data to shared memory
  fails. It will rather only print a message and return results the usual way.
