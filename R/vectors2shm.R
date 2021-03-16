@@ -10,6 +10,7 @@ vectors2shm <- function(l, limit = 2L,
   on.exit(unlink_all_shm(name_prefix, 1L))
 
   vectors2shm_core <- function(l) {
+    if (is.environment(l)) return(l)
     if (inherits(l, "shm_obj")) return(l)
     if (inherits(l, "char_map")) is_char_map <- TRUE else is_char_map <- FALSE
     if (isS4(l)) return(l)
@@ -76,6 +77,7 @@ vectors2shm <- function(l, limit = 2L,
 
 shm2vectors <- function(l) {
   shm2vectors_core <- function(l) {
+    if (is.environment(l)) return(l)
     if (isS4(l)) return(l)
     if (is.environment(l)) {
       if (isTRUE(attr(l, "bettermc_recurse_protect"))) return(l)

@@ -1,6 +1,6 @@
-#' Recursively Call \code{\link{char_map}}/\code{\link{map2char}} on an Object
+#' Recursively Call \code{\link{char_map}}/\code{\link{map2char}} on a List
 #'
-#' @param l an object, typically a list or an environment
+#' @param l an object, typically a list
 #' @param limit the minimum length of a character vector for
 #'   \code{\link{char_map}} to be applied
 #' @param compress_altreps should a character vector be compressed if it is an
@@ -19,6 +19,7 @@ compress_chars <- function(l, limit = 0L,
   compress_altreps <- match.arg(compress_altreps)
 
   compress_chars_core <- function(l) {
+    if (is.environment(l)) return(l)
     if (inherits(l, c("shm_obj", "char_map"))) return(l)
     if (isS4(l)) return(l)
 
@@ -72,6 +73,7 @@ compress_chars <- function(l, limit = 0L,
 #' @export
 uncompress_chars <- function(l) {
   uncompress_chars_core <- function(l) {
+    if (is.environment(l)) return(l)
     if (isS4(l)) return(l)
 
     if (is.environment(l)) {

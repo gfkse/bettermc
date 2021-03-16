@@ -3,7 +3,7 @@
 \name{compress_chars}
 \alias{compress_chars}
 \alias{uncompress_chars}
-\title{Recursively Call \code{\link{char_map}}/\code{\link{map2char}} on an Object}
+\title{Recursively Call \code{\link{char_map}}/\code{\link{map2char}} on a List}
 \usage{
 compress_chars(
   l,
@@ -14,7 +14,7 @@ compress_chars(
 uncompress_chars(l)
 }
 \arguments{
-\item{l}{an object, typically a list or an environment}
+\item{l}{an object, typically a list}
 
 \item{limit}{the minimum length of a character vector for
 \code{\link{char_map}} to be applied}
@@ -25,7 +25,7 @@ representation was already created. This was chosen as the default because
 in this case is is the regular representation which would be serialized.}
 }
 \description{
-Recursively Call \code{\link{char_map}}/\code{\link{map2char}} on an Object
+Recursively Call \code{\link{char_map}}/\code{\link{map2char}} on a List
 }
 \note{
 The object returned by \code{compress_chars} might be an invalid S3
