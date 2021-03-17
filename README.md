@@ -39,7 +39,7 @@ f <- function(x) g(as.character(x))
 bettermc::mclapply(1:2, f)
 ```
 
-    ## Error in core(tries_left): error(s) occured during mclapply; first original message:
+    ## Error in bettermc::mclapply(1:2, f): error(s) occured during mclapply; first original message:
     ## 
     ## Error: non-numeric argument to binary operator
     ## 

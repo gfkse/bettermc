@@ -13,3 +13,13 @@ is.uneval.promise <- function(name, env) {
 is.missing.arg <- function(name, env) {
   eval(parse(text = paste0("base::missing(`", name, "`)")), env)
 }
+
+make_root_stop <- function(call = sys.call(-1L)) {
+  force(call)
+  function(...) stop(simpleError(paste0(..., collapse = ""), call = call))
+}
+
+make_root_warning <- function(call = sys.call(-1L)) {
+  force(call)
+  function(...) warning(simpleWarning(paste0(..., collapse = ""), call = call))
+}

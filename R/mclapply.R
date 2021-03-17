@@ -213,6 +213,9 @@ mclapply <- function(X, FUN, ...,
 
   FUN <- force(FUN)
 
+  root_stop <- make_root_stop()
+  root_warning <- make_root_warning()
+
   # define core ----
   # we need to cleanup after each try, hence the core function such that we can
   # use on.exit
@@ -314,7 +317,7 @@ mclapply <- function(X, FUN, ...,
         stdout_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&1", mc.X.idx))
         stderr_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&2", mc.X.idx))
       } else {
-        stop("unexpected value for OSTYPE: ", OSTYPE)
+        root_stop("unexpected value for OSTYPE: ", OSTYPE)
       }
 
 
@@ -492,7 +495,7 @@ mclapply <- function(X, FUN, ...,
       orig_message <- res[[which(wrapper_error)[1]]]
       msg <- "error in bettermc wrapper code; first original message:\n\n" %+%
         paste0(capture.output(orig_message), collapse = "\n")
-      stop(msg)
+      root_stop(msg)
     }
 
     # number of results affected by fatal error(s)
@@ -524,9 +527,9 @@ mclapply <- function(X, FUN, ...,
       if (tries_left) {
         message(msg)
       } else if (mc.allow.fatal) {
-        warning(msg)
+        root_warning(msg)
       } else {
-        stop(msg)
+        root_stop(msg)
       }
     }
 
@@ -620,7 +623,7 @@ mclapply <- function(X, FUN, ...,
       if (tries_left) {
         message(msg)
       } else if (mc.allow.error) {
-        warning(msg)
+        root_warning(msg)
       } else {
         if (mc.dump.frames != "no") {
           if (grepl("^file://", mc.dumpto)) {
@@ -629,7 +632,7 @@ mclapply <- function(X, FUN, ...,
             assign(mc.dumpto, res, .GlobalEnv)
           }
         }
-        stop(msg)
+        root_stop(msg)
       }
     }
 
