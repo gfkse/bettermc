@@ -6,14 +6,12 @@
 #' @inheritParams base::try
 #' @param dump.frames should a crash dump (cf. \code{\link[utils]{dump.frames}})
 #'   be created in case of an error? The default "partial" omits the frames up
-#'   to the call of \code{etry}. "full" and "no" do the obvious.
+#'   to the call of \code{etry}. "full" and "no" do the obvious. "full_global"
+#'   additionally also includes (a copy of) the global environment (cf.
+#'   \code{include.GlobalEnv} argument of \code{\link[utils]{dump.frames}}).
 #' @param max.lines for \code{etry}, the maximum number of lines to be
 #'   \emph{deparsed} per call. For \code{print}, the maximum number of lines to
 #'   be \emph{printed} per call. The default for the latter is unlimited.
-#' @param TB_skip_before how many calls to skip from the traceback and the
-#'   \emph{full} crash dump before the call to \code{etry}.
-#' @param TB_skip_after how many calls to skip from the traceback and the crash
-#'   dump after the call to \code{etry}, i.e. from \code{expr} itself.
 #'
 #' @return For \code{etry}, the value of the expression if \code{expr} is
 #'   evaluated without error, but an invisible object of class
@@ -28,14 +26,14 @@
 etry <- function(expr, silent = FALSE,
                  outFile = getOption("try.outFile", default = stderr()),
                  max.lines = 100L,
-                 dump.frames = c("partial", "full", "no"),
-                 TB_skip_before = 0L, TB_skip_after = 0L) {
+                 dump.frames = c("partial", "full", "full_global", "no")) {
   dump.frames <- match.arg(dump.frames)
 
   TB <- NULL
-  DP <- NULL
+  DP <- list()
   tryCatch(
     withCallingHandlers(expr, error = function(e) {
+      # 3L -> ensure that the actual error is on top of the traceback
       if ("max.lines" %in% names(formals(.traceback))) {
         TB <<- .traceback(3L, max.lines = max.lines)
       } else {
@@ -44,26 +42,27 @@ etry <- function(expr, silent = FALSE,
         TB <<- .traceback(3L)
       }
 
-      calls <- sys.calls()
-      DP <<- sys.frames()
-      names(DP) <<- limitedLabels(calls)
-      DP <<- c(.GlobalEnv = as.environment(as.list(.GlobalEnv, all.names = TRUE)), DP)
-      DP <<- DP[-c(length(DP) - 1L, length(DP))]
-      attr(DP, "error.message") <<- conditionMessage(e)
+      if (dump.frames != "no") {
+        calls <- sys.calls()
+        DP <<- sys.frames()
+        names(DP) <<- limitedLabels(calls)
+        if (dump.frames == "full_global") {
+          DP <<- c(.GlobalEnv = as.environment(as.list(.GlobalEnv, all.names = TRUE)), DP)
+        }
+        # ensure that the actual error is last in the crash dump
+        DP <<- DP[-c(length(DP) - 1L, length(DP))]
+      }
+      attr(DP, "error.message") <<- paste0(conditionMessage(e), "\n\n")
       class(DP) <<- "dump.frames"
     }), error = function(e) {
-      nc <- length(sys.calls())
-
-      idx2drop <- seq(length(TB) - nc - TB_skip_after,
-                      length(TB) - nc + 4L + TB_skip_before)
-      TB[idx2drop] <<- NULL
-
-      if (dump.frames == "full") {
-        idx2drop <- seq(nc - 2L - TB_skip_before, nc + 2L + TB_skip_after)
+      if (dump.frames == "partial") {
+        # 5L -> ensure that DP starts with the call of etry()
+        nc <- length(sys.calls())
+        idx2drop <- seq_len(nc - 5L)
       } else if (dump.frames == "no") {
         idx2drop <- seq_along(DP)
       } else {
-        idx2drop <- seq(1, nc + 2L + TB_skip_after)
+        idx2drop <- integer()
       }
 
       DP[idx2drop] <<- NULL

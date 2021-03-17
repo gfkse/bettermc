@@ -18,9 +18,8 @@
 #'@param mc.fail.early should we try to fail fast after encountering the first
 #'  (non-fatal) error in a child process?
 #'@param mc.dump.frames should we \code{\link[utils]{dump.frames}} on non-fatal
-#'  errors in child processes. The default "partial" omits the frames up to the
-#'  call of \code{mcparallel} in the master processes. "full" and "no" do the
-#'  obvious.
+#'  errors in child processes. The default "partial" omits the frames (roughly)
+#'  up to the call of \code{FUN}. See \code{\link{etry}} for the other options.
 #'@param mc.dumpto where to save the result including the dumped frames if
 #'  \code{mc.dump.frames != "no" & mc.allow.error == FALSE}? Either the name of
 #'  the variable to create in the global environment or a path (prefixed with
@@ -124,7 +123,7 @@ mclapply <- function(X, FUN, ...,
                      affinity.list = NULL,
                      mc.allow.fatal = FALSE, mc.allow.error = FALSE,
                      mc.fail.early = !mc.allow.error,
-                     mc.dump.frames = c("partial", "full", "no"),
+                     mc.dump.frames = c("partial", "full", "full_global", "no"),
                      mc.dumpto = ifelse(interactive(), "last.dump",
                                         "file://last.dump.rds"),
                      mc.stdout = c("capture", "output"),
@@ -374,16 +373,14 @@ mclapply <- function(X, FUN, ...,
                                       warning = whandler,
                                       message = mhandler,
                                       condition = chandler),
-                  silent = TRUE, dump.frames = mc.dump.frames,
-                  TB_skip_before = 14L, TB_skip_after = 2L)
+                  silent = TRUE, dump.frames = mc.dump.frames)
     } else {
       output <- capture.output(
         res <- etry(withCallingHandlers(list(FUN(X, ...)),
                                         warning = whandler,
                                         message = mhandler,
                                         condition = chandler),
-                    silent = TRUE, dump.frames = mc.dump.frames,
-                    TB_skip_before = 19L, TB_skip_after = 2L)
+                    silent = TRUE, dump.frames = mc.dump.frames)
       )
       if (length(output)) attr(res, "bettermc_output") <- output
     }

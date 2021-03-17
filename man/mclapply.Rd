@@ -18,7 +18,7 @@ mclapply(
   mc.allow.fatal = FALSE,
   mc.allow.error = FALSE,
   mc.fail.early = !mc.allow.error,
-  mc.dump.frames = c("partial", "full", "no"),
+  mc.dump.frames = c("partial", "full", "full_global", "no"),
   mc.dumpto = ifelse(interactive(), "last.dump", "file://last.dump.rds"),
   mc.stdout = c("capture", "output"),
   mc.warnings = c("m_signal", "signal", "m_output", "output", "m_ignore", "ignore",
@@ -95,9 +95,8 @@ mclapply(
 (non-fatal) error in a child process?}
 
 \item{mc.dump.frames}{should we \code{\link[utils]{dump.frames}} on non-fatal
-errors in child processes. The default "partial" omits the frames up to the
-call of \code{mcparallel} in the master processes. "full" and "no" do the
-obvious.}
+errors in child processes. The default "partial" omits the frames (roughly)
+up to the call of \code{FUN}. See \code{\link{etry}} for the other options.}
 
 \item{mc.dumpto}{where to save the result including the dumped frames if
 \code{mc.dump.frames != "no" & mc.allow.error == FALSE}? Either the name of

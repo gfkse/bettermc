@@ -10,9 +10,7 @@ etry(
   silent = FALSE,
   outFile = getOption("try.outFile", default = stderr()),
   max.lines = 100L,
-  dump.frames = c("partial", "full", "no"),
-  TB_skip_before = 0L,
-  TB_skip_after = 0L
+  dump.frames = c("partial", "full", "full_global", "no")
 )
 
 \method{print}{`etry-error`}(
@@ -37,13 +35,9 @@ be \emph{printed} per call. The default for the latter is unlimited.}
 
 \item{dump.frames}{should a crash dump (cf. \code{\link[utils]{dump.frames}})
 be created in case of an error? The default "partial" omits the frames up
-to the call of \code{etry}. "full" and "no" do the obvious.}
-
-\item{TB_skip_before}{how many calls to skip from the traceback and the
-\emph{full} crash dump before the call to \code{etry}.}
-
-\item{TB_skip_after}{how many calls to skip from the traceback and the crash
-dump after the call to \code{etry}, i.e. from \code{expr} itself.}
+to the call of \code{etry}. "full" and "no" do the obvious. "full_global"
+additionally also includes (a copy of) the global environment (cf.
+\code{include.GlobalEnv} argument of \code{\link[utils]{dump.frames}}).}
 
 \item{x}{an object of class "etry-error".}
 
