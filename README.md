@@ -28,6 +28,10 @@ be fairly straightforward. Windows is not supported.
 
 Here is a short overview on its main features …
 
+### Progress Bar
+
+![progress bar](progress.png)
+
 ### Traceback and Crashdumps
 
 By default, crashdumps and full tracebacks are generated on errors in
@@ -95,7 +99,7 @@ print(attr(last.dump[[1L]], "dump.frames"))
 
 In contrast to `parallel::mclapply`, neither output nor messages nor
 warnings from the child processes are lost. All of these can be
-forwarded to the parent process and are prefix with the index of the
+forwarded to the parent process and are prefixed with the index of the
 function invocation from which they originate:
 
 ``` r

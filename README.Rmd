@@ -73,6 +73,9 @@ Windows is not supported.
 ## Features
 Here is a short overview on its main features ...
 
+### Progress Bar
+![progress bar](progress.png)
+
 ### Traceback and Crashdumps
 By default, crashdumps and full tracebacks are generated on errors in child processes:
 ```{r traceback, error=TRUE, output.lines=10}
@@ -90,7 +93,7 @@ print(attr(last.dump[[1L]], "dump.frames"))
 
 ### Output, Messages and Warnings
 In contrast to `parallel::mclapply`, neither output nor messages nor warnings from the child processes are lost.
-All of these can be forwarded to the parent process and are prefix with the index of the function invocation from which they originate:
+All of these can be forwarded to the parent process and are prefixed with the index of the function invocation from which they originate:
 ```{r output}
 f <- function(i) {
   if (i == 1) message(letters[i])
