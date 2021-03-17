@@ -225,6 +225,10 @@ mclapply <- function(X, FUN, ...,
     message("Please install the progress-package in order to get a progress bar.")
   }
 
+  if (!is.null(affinity.list) && mc.preschedule) {
+    # originally signaled in parallel::mclapply, but we muffle it
+    warning("'mc.preschedule' must be false if 'affinity.list' is used")
+  }
 
   FUN <- force(FUN)
 
@@ -651,6 +655,7 @@ mclapply <- function(X, FUN, ...,
 
   X_seq <- seq_along(X)
   X_orig <- X
+  affinity.list_orig <- affinity.list
   res <- vector("list", length(X))
   for (i in seq_along(mc.cores_seq)) {
     mc.cores <- mc.cores_seq[i]
@@ -661,6 +666,7 @@ mclapply <- function(X, FUN, ...,
 
     if (length(X_seq) == 0L) break
     X <- X_orig[X_seq]
+    affinity.list <- affinity.list_orig[X_seq]
   }
 
   # remove the list()-wrapper around each (non-error) element & potentially
