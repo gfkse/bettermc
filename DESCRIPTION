@@ -25,6 +25,7 @@ BugReports: https://github.com/gfkse/bettermc/issues
 Encoding: UTF-8
 Depends: R (>= 3.4.3)
 Imports:
+    backports,
     checkmate,
     parallel
 RoxygenNote: 7.2
