@@ -542,25 +542,12 @@ mclapply <- function(X, FUN, ...,
                           })
     }
 
-    if (mc_fatal) {
-      msg <- "at least one scheduled core did not return results;" %\%
-        "maybe it was killed (by the Linux Out of Memory Killer ?) or there" %\%
-        "was a fatal error in the forked process(es)"
-      if (tries_left) {
-        message(msg)
-      } else if (!isFALSE(mc.allow.fatal)) {
-        root_warning(msg)
-      } else {
-        root_stop(msg)
-      }
-    }
-
     if (mc.shm.ipc) {
       res <- lapply(res, function(e) {
         if (inherits(e, "shm_obj")) {
           unserialize(allocate_from_shm(e))
         } else {
-          # there was a fatal error and mc.allow.fatal == TRUE, i.e. e is NULL
+          # there was a fatal error, i.e. e is NULL
           # - or -
           # we returned early from the wrapper due to failing early
           # - or -
@@ -631,34 +618,19 @@ mclapply <- function(X, FUN, ...,
       })
     }
 
-    if (any(mc_error <- vapply(res, inherits, logical(1L), what = "etry-error"))) {
+    if (tries_left && mc_fatal) {
+      msg <- "at least one scheduled core did not return results;" %\%
+        "maybe it was killed (by the Linux Out of Memory Killer ?) or there" %\%
+        "was a fatal error in the forked process(es)"
+      message(msg)
+    }
+
+    if (tries_left &&
+        any(mc_error <- vapply(res, inherits, logical(1L), what = "etry-error"))) {
       orig_message <- res[[which(mc_error)[1]]]
       msg <- "error(s) occured during mclapply; first original message:\n\n" %+%
         paste0(capture.output(orig_message), collapse = "\n")
-
-      # ?options on warning.length: "sets the truncation limit for error and
-      # warning messages. A non-negative integer, with allowed values
-      # 100...8170, default 1000."
-      #
-      # we increase this here because msg contains the traceback, which is
-      # easily longer than 1000
-      opt_bk <- options(warning.length = 8170L)
-      on.exit(options(opt_bk), add = TRUE)
-
-      if (tries_left) {
-        message(msg)
-      } else if (mc.allow.error) {
-        root_warning(msg)
-      } else {
-        if (mc.dump.frames != "no") {
-          if (grepl("^file://", mc.dumpto)) {
-            saveRDS(res, gsub("^file://", "", mc.dumpto))
-          } else {
-            assign(mc.dumpto, res, .GlobalEnv)
-          }
-        }
-        root_stop(msg)
-      }
+      message(msg)
     }
 
     res
@@ -692,21 +664,91 @@ mclapply <- function(X, FUN, ...,
   }
 
   # remove the list()-wrapper around each (non-error) element & potentially
-  # introduce explicit fatal errors
-  res <- lapply(res, function(e) {
+  # introduce explicit fatal errors;
+  # also check for non-fatal and fatal errors
+  error_idx <- 0L
+  has_fatal_error <- FALSE
+  res <- lapply(seq_along(res), function(i) {
+    e <- res[[i]]
     if (inherits(e, "try-error")) {
+      if (error_idx == 0L) error_idx <<- i
       e
-    } else if (is.null(e) && !is.null(mc.allow.fatal)) {
-      cond <- simpleError("child process did not return any results")
-      structure(conditionMessage(cond),
-                class = c("fatal-error", "try-error"),
-                condition = cond)
+    } else if (is.null(e)) {
+      has_fatal_error <<- TRUE
+      if (!is.null(mc.allow.fatal)) {
+        cond <- simpleError("child process did not return any results")
+        structure(conditionMessage(cond),
+                  class = c("fatal-error", "try-error"),
+                  condition = cond)
+      } else {
+        e
+      }
     } else {
       e[[1L]]
     }
   })
 
   names(res) <- names(X)
+
+  # create crash dump; do this only here such that res is fully processed, i.e.
+  # list wrappers removed, named etc.
+  if (error_idx && !mc.allow.error && mc.dump.frames != "no") {
+    if (grepl("^file://", mc.dumpto)) {
+      saveRDS(res, gsub("^file://", "", mc.dumpto))
+    } else {
+      assign(mc.dumpto, res, .GlobalEnv)
+    }
+  }
+
+  # signal both fatal and not-fatal error as either warnings or errors while
+  # ensuring that
+  # - warnings are signaled before errors
+  # - if there are two errors to signal, make one out of it
+  #
+  # whether we need to signal warnings and/or errors depends on mc.allow.fatal
+  # and mc.allow.error
+  e_list <- list()
+  w_list <- list()
+
+  if (has_fatal_error) {
+    msg <- "at least one scheduled core did not return results;" %\%
+      "maybe it was killed (by the Linux Out of Memory Killer ?) or there" %\%
+      "was a fatal error in the forked process(es)"
+    if (!isFALSE(mc.allow.fatal)) {
+      w_list <- c(w_list, list(msg))
+    } else {
+      e_list <- c(e_list, list(msg))
+    }
+  }
+
+  if (error_idx) {
+    orig_message <- res[[error_idx]]
+    msg <- "error(s) occured during mclapply; first original message:\n\n" %+%
+      paste0(capture.output(orig_message), collapse = "\n")
+    if (mc.allow.error) {
+      w_list <- c(w_list, list(msg))
+    } else {
+      e_list <- c(e_list, list(msg))
+    }
+  }
+
+  # ?options on warning.length: "sets the truncation limit for error and
+  # warning messages. A non-negative integer, with allowed values
+  # 100...8170, default 1000."
+  #
+  # we increase this here because a msg might contain a traceback, which is
+  # easily longer than 1000
+  opt_bk <- options(warning.length = 8170L)
+  on.exit(options(opt_bk), add = TRUE)
+
+  lapply(w_list, root_warning)
+  if (length(e_list) == 1L) {
+    root_stop(e_list[[1L]])
+  } else if (length(e_list) == 2L) {
+    msg <- paste0(e_list[[1L]], "\n\n--- AND ---\n\n", e_list[[2L]])
+    root_stop(msg)
+  }
+
   res
 }
 

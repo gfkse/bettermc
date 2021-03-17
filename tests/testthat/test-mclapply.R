@@ -189,6 +189,55 @@ test_that("mc.fail.early works", {
   expect_true(sum(sapply(ret, inherits, what = "fail-early-error")) >= 8)
 })
 
+test_that("joint fatal and non-fatal errors are handled correctly", {
+  expect_error(bettermc::mclapply(1:2, function(i) {
+    if (i == 1) {
+      system(paste0("kill ", Sys.getpid()))
+    } else {
+      stop(i)
+    }
+  }), regexp = "--- AND ---")
+
+  expect_error(
+    expect_warning(
+      bettermc::mclapply(1:2, function(i) {
+        if (i == 1) {
+          system(paste0("kill ", Sys.getpid()))
+        } else {
+          stop(i)
+        }
+      }, mc.allow.error = TRUE),
+      regexp = "stop\\(i\\)"
+    ),
+    regexp = "Out of Memory Killer"
+  )
+
+  expect_error(
+    expect_warning(
+      bettermc::mclapply(1:2, function(i) {
+        if (i == 1) {
+          system(paste0("kill ", Sys.getpid()))
+        } else {
+          stop(i)
+        }
+      }, mc.allow.fatal = TRUE),
+      regexp = "Out of Memory Killer"
+    ),
+    regexp = "stop\\(i\\)"
+  )
+
+  expect_warning(
+    bettermc::mclapply(1:2, function(i) {
+      if (i == 1) {
+        system(paste0("kill ", Sys.getpid()))
+      } else {
+        stop(i)
+      }
+    }, mc.allow.fatal = NULL, mc.allow.error = TRUE),
+    regexp = "stop\\(i\\)|Out of Memory Killer"
+  )
+})
+
 test_that("mclapply handles warnings correctly", {
   expect_warning(bettermc::mclapply(1:2, function(i) warning(i)),
                "1: 1", fixed = TRUE)
