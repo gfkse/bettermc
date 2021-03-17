@@ -558,17 +558,18 @@ mclapply <- function(X, FUN, ...,
     }
 
     if (mc.stdout == "capture") {
-      lapply(seq_along(res), function(i) {
+      res <- lapply(seq_along(res), function(i) {
         e <- res[[i]]
         if (!is.null(attr(e, "bettermc_output"))) {
           cat(paste0(sprintf("%5d: ", i) ,attr(e, "bettermc_output")), sep = "\n")
           attr(e, "bettermc_output") <- NULL
         }
+        e
       })
     }
 
     if (mc.warnings == "signal") {
-      lapply(seq_along(res), function(i) {
+      res <- lapply(seq_along(res), function(i) {
         e <- res[[i]]
         if (!is.null(attr(e, "bettermc_warnings"))) {
           lapply(attr(e, "bettermc_warnings"), function(w) {
@@ -577,11 +578,12 @@ mclapply <- function(X, FUN, ...,
           })
           attr(e, "bettermc_warnings") <- NULL
         }
+        e
       })
     }
 
     if (mc.messages == "signal") {
-      lapply(seq_along(res), function(i) {
+      res <- lapply(seq_along(res), function(i) {
         e <- res[[i]]
         if (!is.null(attr(e, "bettermc_messages"))) {
           lapply(attr(e, "bettermc_messages"), function(m) {
@@ -590,11 +592,12 @@ mclapply <- function(X, FUN, ...,
           })
           attr(e, "bettermc_messages") <- NULL
         }
+        e
       })
     }
 
     if (mc.conditions == "signal") {
-      lapply(seq_along(res), function(i) {
+      res <- lapply(seq_along(res), function(i) {
         e <- res[[i]]
         if (!is.null(attr(e, "bettermc_conditions"))) {
           lapply(attr(e, "bettermc_conditions"), function(cond) {
@@ -603,6 +606,7 @@ mclapply <- function(X, FUN, ...,
           })
           attr(e, "bettermc_conditions") <- NULL
         }
+        e
       })
     }
 
