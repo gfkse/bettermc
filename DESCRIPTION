@@ -23,9 +23,8 @@ License: MIT + file LICENSE
 URL: https://github.com/gfkse/bettermc
 BugReports: https://github.com/gfkse/bettermc/issues
 Encoding: UTF-8
-Depends: R (>= 3.4.3)
+Depends: R (>= 3.5.0)
 Imports:
-    backports,
     checkmate,
     parallel
 RoxygenNote: 7.2

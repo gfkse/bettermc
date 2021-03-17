@@ -8,7 +8,3 @@ OSTYPE <-
   } else {
     stop("This does not look like a Linux, Solaris or macOS. Aborting.")
   }
-
-.onLoad <- function(libname, pkgname) {
-  backports::import(pkgname, "isFALSE")
-}
