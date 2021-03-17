@@ -694,7 +694,7 @@ mclapply <- function(X, FUN, ...,
     }
   })
 
-  names(res) <- names(X)
+  names(res) <- names(X_orig)
 
   # create crash dump; do this only here such that res is fully processed, i.e.
   # list wrappers removed, named etc.
