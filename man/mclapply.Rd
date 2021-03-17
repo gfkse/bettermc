@@ -88,10 +88,24 @@ mclapply(
     prescheduling has to be deactivated (\code{mc.preschedule = FALSE}).}
 
 \item{mc.allow.fatal}{should fatal errors in child processes make
-\code{mclapply} fail (default) or merely trigger a warning?}
+ \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
+ (\code{TRUE})?
+
+ \code{TRUE} returns objects of classes \code{c("fatal-error", "try-error")}
+ for failed invocations. Hence, in contrast to
+ \code{\link[parallel:mclapply]{parallel::mclapply}}, it is OK for \code{FUN}
+ to return \code{NULL}.
+
+ \code{mc.allow.fatal} can also be \code{NULL}. In this case \code{NULL} is
+ returned, which corresponds to the behavior of
+ \code{\link[parallel:mclapply]{parallel::mclapply}}.}
 
 \item{mc.allow.error}{should non-fatal errors in child processes make
-\code{mclapply} fail (default) or merely trigger a warning?}
+\code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
+(\code{TRUE})? In the latter case, errors are stored as class
+\code{c("etry-error", "try-error")} objects, which contain full tracebacks
+and potentially crash dumps (c.f. \code{mc.dump.frames} and
+\code{\link{etry}}).}
 
 \item{mc.retry}{\code{abs(mc.retry)} is the maximum number of retries of
 failed applications of \code{FUN} in case of both fatal and non-fatal
@@ -104,7 +118,8 @@ too many parallel processes, e.g. the Linux Out Of Memory Killer sacrificing
 some of the child processes.}
 
 \item{mc.fail.early}{should we try to fail fast after encountering the first
-(non-fatal) error in a child process?}
+(non-fatal) error in a child process? Such errors will be recorded as
+objects of classes \code{c("fail-early-error", "try-error")}.}
 
 \item{mc.dump.frames}{should we \code{\link[utils]{dump.frames}} on non-fatal
 errors in child processes. The default "partial" omits the frames (roughly)

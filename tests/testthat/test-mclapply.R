@@ -167,13 +167,26 @@ test_that("mclapply handles fatal error correctly", {
   expect_error(bettermc::mclapply(1:2, function(i) system(sprintf("kill %d", Sys.getpid())), mc.shm.ipc = FALSE),
                "at least one scheduled core did not return results", fixed = TRUE)
 
-  ret <- expect_warning(bettermc::mclapply(1:2, function(i) system(sprintf("kill %d", Sys.getpid())), mc.allow.fatal = TRUE, mc.shm.ipc = TRUE),
+  ret <- expect_warning(bettermc::mclapply(1:2, function(i) system(sprintf("kill %d", Sys.getpid())), mc.allow.fatal = NULL, mc.shm.ipc = TRUE),
                         "at least one scheduled core did not return results", fixed = TRUE)
   expect_identical(ret, list(NULL, NULL))
 
-  ret <- expect_warning(bettermc::mclapply(1:2, function(i) system(sprintf("kill %d", Sys.getpid())), mc.allow.fatal = TRUE, mc.shm.ipc = FALSE),
+  ret <- expect_warning(bettermc::mclapply(1:2, function(i) system(sprintf("kill %d", Sys.getpid())), mc.allow.fatal = NULL, mc.shm.ipc = FALSE),
                         "at least one scheduled core did not return results", fixed = TRUE)
   expect_identical(ret, list(NULL, NULL))
+
+  ret <- expect_warning(bettermc::mclapply(1:2, function(i) system(sprintf("kill %d", Sys.getpid())), mc.allow.fatal = TRUE, mc.shm.ipc = TRUE),
+                        "at least one scheduled core did not return results", fixed = TRUE)
+  expect_true(all(sapply(ret, inherits, what = "fatal-error")))
+
+  ret <- expect_warning(bettermc::mclapply(1:2, function(i) system(sprintf("kill %d", Sys.getpid())), mc.allow.fatal = TRUE, mc.shm.ipc = FALSE),
+                        "at least one scheduled core did not return results", fixed = TRUE)
+  expect_true(all(sapply(ret, inherits, what = "fatal-error")))
+})
+
+test_that("mc.fail.early works", {
+  ret <- suppressWarnings(bettermc::mclapply(1:10, function(i) stop(i), mc.allow.error = TRUE, mc.fail.early = TRUE))
+  expect_true(sum(sapply(ret, inherits, what = "fail-early-error")) >= 8)
 })
 
 test_that("mclapply handles warnings correctly", {

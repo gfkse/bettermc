@@ -13,9 +13,23 @@
 #'
 #'@inheritParams parallel::mclapply
 #'@param mc.allow.fatal should fatal errors in child processes make
-#'  \code{mclapply} fail (default) or merely trigger a warning?
+#'  \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
+#'  (\code{TRUE})?
+#'
+#'  \code{TRUE} returns objects of classes \code{c("fatal-error", "try-error")}
+#'  for failed invocations. Hence, in contrast to
+#'  \code{\link[parallel:mclapply]{parallel::mclapply}}, it is OK for \code{FUN}
+#'  to return \code{NULL}.
+#'
+#'  \code{mc.allow.fatal} can also be \code{NULL}. In this case \code{NULL} is
+#'  returned, which corresponds to the behavior of
+#'  \code{\link[parallel:mclapply]{parallel::mclapply}}.
 #'@param mc.allow.error should non-fatal errors in child processes make
-#'  \code{mclapply} fail (default) or merely trigger a warning?
+#'  \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
+#'  (\code{TRUE})? In the latter case, errors are stored as class
+#'  \code{c("etry-error", "try-error")} objects, which contain full tracebacks
+#'  and potentially crash dumps (c.f. \code{mc.dump.frames} and
+#'  \code{\link{etry}}).
 #'@param mc.retry \code{abs(mc.retry)} is the maximum number of retries of
 #'  failed applications of \code{FUN} in case of both fatal and non-fatal
 #'  errors. This is useful if we expect \code{FUN} to fail either randomly (e.g.
@@ -26,7 +40,8 @@
 #'  too many parallel processes, e.g. the Linux Out Of Memory Killer sacrificing
 #'  some of the child processes.
 #'@param mc.fail.early should we try to fail fast after encountering the first
-#'  (non-fatal) error in a child process?
+#'  (non-fatal) error in a child process? Such errors will be recorded as
+#'  objects of classes \code{c("fail-early-error", "try-error")}.
 #'@param mc.dump.frames should we \code{\link[utils]{dump.frames}} on non-fatal
 #'  errors in child processes. The default "partial" omits the frames (roughly)
 #'  up to the call of \code{FUN}. See \code{\link{etry}} for the other options.
@@ -163,7 +178,7 @@ mclapply <- function(X, FUN, ...,
   if (!is.vector(X) || is.object(X))
     X <- as.list(X)
 
-  checkmate::assert_flag(mc.allow.fatal)
+  checkmate::assert_flag(mc.allow.fatal, null.ok = TRUE)
   checkmate::assert_flag(mc.allow.error)
   checkmate::assert_int(mc.retry)
   checkmate::assert_flag(mc.fail.early)
@@ -305,8 +320,14 @@ mclapply <- function(X, FUN, ...,
       if (mc.progress) on.exit(sem_post(sem), add = TRUE)
 
       # fail early if there was already an error in a child
-      if (mc.fail.early && file.exists(error_file))
-        return(list(simpleError("failing early due to another error")))
+      if (mc.fail.early && file.exists(error_file)) {
+        cond <- simpleError("failing early due to another error")
+        return(
+          structure(conditionMessage(cond),
+                    class = c("fail-early-error", "try-error"),
+                    condition = cond)
+        )
+      }
 
       X <- X[[mc.X.idx]]
 
@@ -491,7 +512,8 @@ mclapply <- function(X, FUN, ...,
     # try-wrapper of parallel::mclapply; in this case we must always fail
     if (any(wrapper_error <-
             vapply(res, inherits, logical(1L), what = "try-error") &
-            !vapply(res, inherits, logical(1L), what = "etry-error"))) {
+            !vapply(res, inherits, logical(1L), what = c("etry-error",
+                                                         "fail-early-error")))) {
       orig_message <- res[[which(wrapper_error)[1]]]
       msg <- "error in bettermc wrapper code; first original message:\n\n" %+%
         paste0(capture.output(orig_message), collapse = "\n")
@@ -526,7 +548,7 @@ mclapply <- function(X, FUN, ...,
         "was a fatal error in the forked process(es)"
       if (tries_left) {
         message(msg)
-      } else if (mc.allow.fatal) {
+      } else if (!isFALSE(mc.allow.fatal)) {
         root_warning(msg)
       } else {
         root_stop(msg)
@@ -540,8 +562,7 @@ mclapply <- function(X, FUN, ...,
         } else {
           # there was a fatal error and mc.allow.fatal == TRUE, i.e. e is NULL
           # - or -
-          # we signaled an error (outside of etry), e.g. warning to error or
-          # due to failing early
+          # we returned early from the wrapper due to failing early
           # - or -
           # copy2shm failed in the child process
           e
@@ -664,14 +685,26 @@ mclapply <- function(X, FUN, ...,
     tries_left <- i < length(mc.cores_seq)
 
     res[X_seq] <- core(tries_left)
-    X_seq <- which(unlist(lapply(res, function(e) is.null(e) || inherits(e, c("etry-error", "error")))))
+    X_seq <- which(unlist(lapply(res, function(e) is.null(e) || inherits(e, "try-error"))))
 
     if (length(X_seq) == 0L) break
     X <- X_orig[X_seq]
   }
 
-  # remove the list()-wrapper around each (non-error) element
-  res <- lapply(res, function(e) if (inherits(e, "etry-error") || inherits(e, "error")) e else e[[1L]])
+  # remove the list()-wrapper around each (non-error) element & potentially
+  # introduce explicit fatal errors
+  res <- lapply(res, function(e) {
+    if (inherits(e, "try-error")) {
+      e
+    } else if (is.null(e) && !is.null(mc.allow.fatal)) {
+      cond <- simpleError("child process did not return any results")
+      structure(conditionMessage(cond),
+                class = c("fatal-error", "try-error"),
+                condition = cond)
+    } else {
+      e[[1L]]
+    }
+  })
 
   names(res) <- names(X)
   res
