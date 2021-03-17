@@ -3,18 +3,28 @@
 #'This wrapper for \code{\link[parallel:mclapply]{parallel::mclapply}} adds the
 #'following features: \itemize{ \item reliably detect if a child process failed
 #'with a fatal error or if it was killed. \item get tracebacks after non-fatal
-#'errors in child processes. \item fail early after non-fatal errors in child
-#'processes. \item get crash dumps from failed child processes. \item capture
-#'output from child processes. \item track warnings and messages signaled in the
-#'child processes. \item return results from child processes using POSIX shared
-#'memory to improve performance. \item compress character vectors in results to
-#'improve performance. \item display a progress bar.}
+#'errors in child processes. \item retry on fatal and non-fatal errors. \item
+#'fail early after non-fatal errors in child processes. \item get crash dumps
+#'from failed child processes. \item capture output from child processes. \item
+#'track warnings, messages and other conditions signaled in the child processes.
+#'\item return results from child processes using POSIX shared memory to improve
+#'performance. \item compress character vectors in results to improve
+#'performance. \item display a progress bar.}
 #'
 #'@inheritParams parallel::mclapply
 #'@param mc.allow.fatal should fatal errors in child processes make
 #'  \code{mclapply} fail (default) or merely trigger a warning?
 #'@param mc.allow.error should non-fatal errors in child processes make
 #'  \code{mclapply} fail (default) or merely trigger a warning?
+#'@param mc.retry \code{abs(mc.retry)} is the maximum number of retries of
+#'  failed applications of \code{FUN} in case of both fatal and non-fatal
+#'  errors. This is useful if we expect \code{FUN} to fail either randomly (e.g.
+#'  non-convergence of a model) or temporarily (e.g. database connections).
+#'  Additionally, if \code{mc.retry <= -1}, the value of \code{mc.cores} is
+#'  gradually decreased with each retry to a minimum of 1 (2 if
+#'  \code{mc.force.fork = TRUE}). This is useful if we expect failures due to
+#'  too many parallel processes, e.g. the Linux Out Of Memory Killer sacrificing
+#'  some of the child processes.
 #'@param mc.fail.early should we try to fail fast after encountering the first
 #'  (non-fatal) error in a child process?
 #'@param mc.dump.frames should we \code{\link[utils]{dump.frames}} on non-fatal
@@ -34,7 +44,7 @@
 #'  warnings/messages/conditions in the child processes and signals them in the
 #'  master process. "stop" converts warnings (only) into non-fatal errors in the
 #'  child processes directly. "output" directly forwards the messages to stderr
-#'  of the parent; no condition is signalled in the parent process nor is the
+#'  of the parent; no condition is signaled in the parent process nor is the
 #'  output capturable/sinkable. "ignore" means that the conditions are not
 #'  forwarded in any way to the parent process. Options prefixed with "m"
 #'  additionally try to invoke the "muffleWarning"/"muffleMessage" restart in
@@ -63,6 +73,13 @@
 #'  copy of it (\code{TRUE})? See \code{\link{copy2shm}} for the implications.
 #'@param mc.shm.ipc should the results be returned from the child processes
 #'  using POSIX shared memory (cf. \code{\link{copy2shm}})?
+#'@param mc.force.fork should it be ensured that \code{FUN} is always called in
+#'  a forked child process, even if \code{length(X) == 1}? This is useful if we
+#'  use forking to protect the main R process from fatal errors, memory
+#'  corruption, memory leaks etc. occurring in \code{FUN}. This feature requires
+#'  that \code{mc.cores >= 2} and also ensures that the effective value for
+#'  \code{mc.cores} never drops to less than 2 as a result of \code{mc.retry}
+#'  being negative.
 #'@param mc.progress should a progress bar be printed to stderr of the parent
 #'  process (package \code{progress} must be installed)?
 #'
@@ -122,7 +139,8 @@ mclapply <- function(X, FUN, ...,
                      mc.cleanup = TRUE, mc.allow.recursive = TRUE,
                      affinity.list = NULL,
                      mc.allow.fatal = FALSE, mc.allow.error = FALSE,
-                     mc.fail.early = !mc.allow.error,
+                     mc.retry = 0L,
+                     mc.fail.early = !(mc.allow.error || mc.retry != 0L),
                      mc.dump.frames = c("partial", "full", "full_global", "no"),
                      mc.dumpto = ifelse(interactive(), "last.dump",
                                         "file://last.dump.rds"),
@@ -138,6 +156,7 @@ mclapply <- function(X, FUN, ...,
                      mc.share.altreps = c("no", "yes", "if_allocated"),
                      mc.share.copy = TRUE,
                      mc.shm.ipc = getOption("bettermc.use_shm", TRUE),
+                     mc.force.fork = FALSE,
                      mc.progress = interactive()) {
 
   # as in parallel::mclapply
@@ -146,6 +165,7 @@ mclapply <- function(X, FUN, ...,
 
   checkmate::assert_flag(mc.allow.fatal)
   checkmate::assert_flag(mc.allow.error)
+  checkmate::assert_int(mc.retry)
   checkmate::assert_flag(mc.fail.early)
   checkmate::assert_string(mc.dumpto, min.chars = 1L)
   checkmate::assert_flag(mc.shm.ipc)
@@ -179,6 +199,10 @@ mclapply <- function(X, FUN, ...,
     mc.share.vectors <- Inf
   }
 
+  checkmate::assert_flag(mc.force.fork)
+  if (mc.force.fork && mc.cores < 2L) {
+    stop("'mc.force.fork' requires 'mc.cores' to be at least 2.")
+  }
 
   checkmate::assert_flag(mc.progress)
   if (mc.progress && !requireNamespace("progress", quietly = TRUE)) {
@@ -189,392 +213,460 @@ mclapply <- function(X, FUN, ...,
 
   FUN <- force(FUN)
 
-  # ppid is used to name POSIX shared memory objects and semaphores
-  ppid <- Sys.getpid()
+  # define core ----
+  # we need to cleanup after each try, hence the core function such that we can
+  # use on.exit
+  core <- function(tries_left) {
+    # ppid is used to name POSIX shared memory objects and semaphores
+    ppid <- Sys.getpid()
 
-  timestamp <- as.character(round(as.numeric(Sys.time()) * 1000))
-  shm_prefix <- sprintf("/bmc_%d_%s_", ppid, timestamp)
+    timestamp <- as.character(round(as.numeric(Sys.time()) * 1000))
+    shm_prefix <- sprintf("/bmc_%d_%s_", ppid, timestamp)
 
-  # unlink shared memory objects in case of errors
-  #
-  # the regular order in which the objects are unlinked is
-  # [0, N, N - 1, ..., 2, 1] (cf. the comments in shm2vectors())
-  #
-  # unlink_all_shm() unlinks in increasing order starting at 'start' and
-  # stopping at the first non-existing object
-  on.exit({
-    if (mc.shm.ipc) {
-      lapply(seq_along(X), function(i)
-        unlink_all_shm(paste0(shm_prefix, i, "_"), start = 0L))
-    }
+    # unlink shared memory objects in case of errors
+    #
+    # the regular order in which the objects are unlinked is
+    # [0, N, N - 1, ..., 2, 1] (cf. the comments in shm2vectors())
+    #
+    # unlink_all_shm() unlinks in increasing order starting at 'start' and
+    # stopping at the first non-existing object
+    on.exit({
+      if (mc.shm.ipc) {
+        lapply(seq_along(X), function(i)
+          unlink_all_shm(paste0(shm_prefix, i, "_"), start = 0L))
+      }
 
-    # if mc.shm.ipc == TRUE, then we would generally not need to run
-    # unlink_all_shm(..., 1L) again but there is the edge case when object 0
-    # was already unlinked but some of the objects 1, 2, ... still exist
-    if (!is.infinite(mc.share.vectors)) {
-      lapply(seq_along(X), function(i)
-        unlink_all_shm(paste0(shm_prefix, i, "_"), start = 1L))
-    }
-  })
+      # if mc.shm.ipc == TRUE, then we would generally not need to run
+      # unlink_all_shm(..., 1L) again but there is the edge case when object 0
+      # was already unlinked but some of the objects 1, 2, ... still exist
+      if (!is.infinite(mc.share.vectors)) {
+        lapply(seq_along(X), function(i)
+          unlink_all_shm(paste0(shm_prefix, i, "_"), start = 1L))
+      }
+    })
 
 
-  # create dedicated child process for printing progress bar ----
-  # - call pb tick method on increment of semaphore sem
-  # - catch messages signalled by tick and cat them to stderr via pipe (to
-  #   make it work in RStudio)
-  if (mc.progress) {
-    sem <- sem_open(paste0("/bettermc_", ppid), create = TRUE)
-    on.exit(sem_close(sem), add = TRUE)
-    on.exit(sem_unlink(paste0("/bettermc_", ppid)), add = TRUE)
+    # create dedicated child process for printing progress bar ----
+    # - call pb tick method on increment of semaphore sem
+    # - catch messages signaled by tick and cat them to stderr via pipe (to
+    #   make it work in RStudio)
+    if (mc.progress) {
+      sem <- sem_open(paste0("/bettermc_", ppid), create = TRUE)
+      on.exit(sem_close(sem), add = TRUE)
+      on.exit(sem_unlink(paste0("/bettermc_", ppid)), add = TRUE)
 
-    progress_job <- parallel::mcparallel({
-      stderr_pipe <- pipe("cat >&2")
-      pb <- progress::progress_bar$new(format = "[:bar] [:current/:total] :eta ETA",
-                                       total = length(X), force = TRUE, show_after = 0,
-                                       clear = TRUE)
-      withCallingHandlers(
-        pb$tick(0),
-        message = function(m) {
-          cat(m$message, file = stderr_pipe)
-          invokeRestart("muffleMessage")
-        })
-
-      for (i in seq_along(X)) {
-        sem_wait(sem)
+      progress_job <- parallel::mcparallel({
+        stderr_pipe <- pipe("cat >&2")
+        pb <- progress::progress_bar$new(format = "[:bar] [:current/:total] :eta ETA",
+                                         total = length(X), force = TRUE, show_after = 0,
+                                         clear = TRUE)
         withCallingHandlers(
-          pb$tick(),
+          pb$tick(0),
           message = function(m) {
             cat(m$message, file = stderr_pipe)
             invokeRestart("muffleMessage")
           })
-      }
-      close(stderr_pipe)
-    })
-  }
 
-
-  # this file is touched on first error in a child
-  if (mc.fail.early) {
-    error_file <- tempfile("bettermc_error_")
-    on.exit(unlink(error_file), add = TRUE)
-  }
-
-
-  # this closure is the FUN which we call using parallel::mclapply below
-  # - it does not operate on X but rather on seq_along(X) in order to know which
-  #   element is currently being processed (mc.X.idx)
-  # - the result is wrapped in list() to differentiate a legitimate NULL from a
-  #   fatal error
-  warning_from_user_code <- FALSE
-  wrapper <- function(mc.X.idx, ...) {
-    # update progress bar once we are done
-    if (mc.progress) on.exit(sem_post(sem), add = TRUE)
-
-    # fail early if there was already an error in a child
-    if (mc.fail.early && file.exists(error_file))
-      return(list(simpleError("failing early due to another error")))
-
-    X <- X[[mc.X.idx]]
-
-    if (OSTYPE == "linux") {
-      stdout_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&1", mc.X.idx))
-      stderr_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&2", mc.X.idx))
-    } else if (OSTYPE %in% c("macos", "solaris")) {
-      stdout_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&1", mc.X.idx))
-      stderr_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&2", mc.X.idx))
-    } else {
-      stop("unexpected value for OSTYPE: ", OSTYPE)
+        for (i in seq_along(X)) {
+          sem_wait(sem)
+          withCallingHandlers(
+            pb$tick(),
+            message = function(m) {
+              cat(m$message, file = stderr_pipe)
+              invokeRestart("muffleMessage")
+            })
+        }
+        close(stderr_pipe)
+      })
     }
 
 
-    # make output work in RStudio
-    if (mc.stdout == "output") {
-      sink(stdout_pipe)
-      on.exit(sink(), add = TRUE)
+    # this file is touched on first error in a child
+    if (mc.fail.early) {
+      error_file <- tempfile("bettermc_error_")
+      on.exit(unlink(error_file), add = TRUE)
     }
 
-    on.exit(close(stdout_pipe), add = TRUE)
-    on.exit(close(stderr_pipe), add = TRUE)
 
-    shm_prefix <- paste0(shm_prefix, mc.X.idx, "_")
+    # define wrapper ----
+    # this closure is the FUN which we call using parallel::mclapply below
+    # - it does not operate on X but rather on seq_along(X) in order to know which
+    #   element is currently being processed (mc.X.idx)
+    # - the result is wrapped in list() to differentiate a legitimate NULL from a
+    #   fatal error
+    warning_from_user_code <- FALSE
+    wrapper <- function(mc.X.idx, ...) {
+      if (mc.X.idx == 0L) return(NULL)  # this is always due to mc.force.fork
 
-    warnings <- list()
-    if (mc.warnings == "signal") {
-      whandler <- function(w) {
-        warnings <<- c(warnings, list(w))
-        if (mc.muffle_warnings) {
-          tryInvokeRestart("muffleWarning")
-        }
-        warning_from_user_code <<- TRUE
-      }
-    } else if (mc.warnings == "output") {
-      whandler <- function(w) {
-        cat(capture.output(print(w)), "\n", file = stderr_pipe)
-        if (mc.muffle_warnings) {
-          tryInvokeRestart("muffleWarning")
-        }
-        warning_from_user_code <<- TRUE
+      # update progress bar once we are done
+      if (mc.progress) on.exit(sem_post(sem), add = TRUE)
+
+      # fail early if there was already an error in a child
+      if (mc.fail.early && file.exists(error_file))
+        return(list(simpleError("failing early due to another error")))
+
+      X <- X[[mc.X.idx]]
+
+      if (OSTYPE == "linux") {
+        stdout_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&1", mc.X.idx))
+        stderr_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&2", mc.X.idx))
+      } else if (OSTYPE %in% c("macos", "solaris")) {
+        stdout_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&1", mc.X.idx))
+        stderr_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&2", mc.X.idx))
+      } else {
+        stop("unexpected value for OSTYPE: ", OSTYPE)
       }
 
-    } else if (mc.warnings == "stop") {
-      whandler <- function(w) {
-        w$message <- paste0("(converted from warning) ", w$message)
-        attr(w, "class") <- c("simpleError", "error", "condition")
-        stop(w)
-      }
-    } else {
-      whandler <- function(w) {
-        if (mc.muffle_warnings) {
-          tryInvokeRestart("muffleWarning")
-        }
-        warning_from_user_code <<- TRUE
-      }
-    }
 
-    messages <- list()
-    if (mc.messages == "signal") {
-      mhandler <- function(m) {
-        messages <<- c(messages, list(m))
-        if (mc.muffle_messages) {
-          tryInvokeRestart("muffleMessage")
-        }
+      # make output work in RStudio
+      if (mc.stdout == "output") {
+        sink(stdout_pipe)
+        on.exit(sink(), add = TRUE)
       }
-    } else if (mc.messages == "output") {
-      mhandler <- function(m) {
-        cat(capture.output(print(m)), "\n", file = stderr_pipe)
-        if (mc.muffle_messages) {
-          tryInvokeRestart("muffleMessage")
-        }
-      }
-    } else {
-      mhandler <- function(m) {
-        if (mc.muffle_messages) {
-          tryInvokeRestart("muffleMessage")
-        }
-      }
-    }
 
-    conditions <- list()
-    if (mc.conditions == "signal") {
-      chandler <- function(cond) {
-        if (!inherits(cond, c("error", "warning", "message"))) {
-          conditions <<- c(conditions, list(cond))
+      on.exit(close(stdout_pipe), add = TRUE)
+      on.exit(close(stderr_pipe), add = TRUE)
+
+      shm_prefix <- paste0(shm_prefix, mc.X.idx, "_")
+
+      warnings <- list()
+      if (mc.warnings == "signal") {
+        whandler <- function(w) {
+          warnings <<- c(warnings, list(w))
+          if (mc.muffle_warnings) {
+            tryInvokeRestart("muffleWarning")
+          }
+          warning_from_user_code <<- TRUE
+        }
+      } else if (mc.warnings == "output") {
+        whandler <- function(w) {
+          cat(capture.output(print(w)), "\n", file = stderr_pipe)
+          if (mc.muffle_warnings) {
+            tryInvokeRestart("muffleWarning")
+          }
+          warning_from_user_code <<- TRUE
+        }
+
+      } else if (mc.warnings == "stop") {
+        whandler <- function(w) {
+          w$message <- paste0("(converted from warning) ", w$message)
+          attr(w, "class") <- c("simpleError", "error", "condition")
+          stop(w)
+        }
+      } else {
+        whandler <- function(w) {
+          if (mc.muffle_warnings) {
+            tryInvokeRestart("muffleWarning")
+          }
+          warning_from_user_code <<- TRUE
         }
       }
-    } else {
-      chandler <- function(cond) NULL
-    }
 
-    # evaluate FUN and handle errors (etry), warnings and messages;
-    # res is always a one-element list except in case of error when it is an
-    # etry-error-object
-    if (mc.stdout == "output") {
-      res <- etry(withCallingHandlers(list(FUN(X, ...)),
-                                      warning = whandler,
-                                      message = mhandler,
-                                      condition = chandler),
-                  silent = TRUE, dump.frames = mc.dump.frames)
-    } else {
-      output <- capture.output(
+      messages <- list()
+      if (mc.messages == "signal") {
+        mhandler <- function(m) {
+          messages <<- c(messages, list(m))
+          if (mc.muffle_messages) {
+            tryInvokeRestart("muffleMessage")
+          }
+        }
+      } else if (mc.messages == "output") {
+        mhandler <- function(m) {
+          cat(capture.output(print(m)), "\n", file = stderr_pipe)
+          if (mc.muffle_messages) {
+            tryInvokeRestart("muffleMessage")
+          }
+        }
+      } else {
+        mhandler <- function(m) {
+          if (mc.muffle_messages) {
+            tryInvokeRestart("muffleMessage")
+          }
+        }
+      }
+
+      conditions <- list()
+      if (mc.conditions == "signal") {
+        chandler <- function(cond) {
+          if (!inherits(cond, c("error", "warning", "message"))) {
+            conditions <<- c(conditions, list(cond))
+          }
+        }
+      } else {
+        chandler <- function(cond) NULL
+      }
+
+      # evaluate FUN and handle errors (etry), warnings and messages;
+      # res is always a one-element list except in case of error when it is an
+      # etry-error-object
+      if (mc.stdout == "output") {
         res <- etry(withCallingHandlers(list(FUN(X, ...)),
                                         warning = whandler,
                                         message = mhandler,
                                         condition = chandler),
-                    silent = TRUE, dump.frames = mc.dump.frames)
-      )
-      if (length(output)) attr(res, "bettermc_output") <- output
+                    silent = TRUE,
+                    dump.frames = if (tries_left) "no" else mc.dump.frames)
+      } else {
+        output <- capture.output(
+          res <- etry(withCallingHandlers(list(FUN(X, ...)),
+                                          warning = whandler,
+                                          message = mhandler,
+                                          condition = chandler),
+                      silent = TRUE,
+                      dump.frames = if (tries_left) "no" else mc.dump.frames)
+        )
+        if (length(output)) attr(res, "bettermc_output") <- output
+      }
+
+
+      # make consecutive invocations of this wrapper fail early
+      if (mc.fail.early && inherits(res, "etry-error")) file.create(error_file)
+
+      if (length(warnings)) attr(res, "bettermc_warnings") <- warnings
+      if (length(messages)) attr(res, "bettermc_messages") <- messages
+      if (length(conditions)) attr(res, "bettermc_conditions") <- conditions
+
+      if (!is.infinite(mc.compress.chars)) {
+        res <- compress_chars(res, limit = mc.compress.chars,
+                              compress_altreps = mc.compress.altreps)
+      }
+
+      if (!is.infinite(mc.share.vectors)) {
+        res <- vectors2shm(res, limit = mc.share.vectors,
+                           share_altreps = mc.share.altreps,
+                           copy = mc.share.copy,
+                           name_prefix = shm_prefix)
+      }
+
+      if (mc.shm.ipc) {
+        # if copy2shm fails we deliberately sacrifice the serialized result and
+        # let parallel::mclapply serialize it again because returning raw vectors
+        # used to be fairly buggy
+        # (cf. e.g. https://bugs.r-project.org/bugzilla/show_bug.cgi?id=17779)
+        res_serial <- serialize(res, NULL, xdr = FALSE)
+        shm_obj <- copy2shm(res_serial, paste0(shm_prefix, 0))
+
+        if (inherits(shm_obj, "shm_obj")) {
+          res <- shm_obj
+        } else {
+          message(shm_obj)
+        }
+      }
+
+      res
     }
 
 
-    # make consecutive invocations of this wrapper fail early
-    if (mc.fail.early && inherits(res, "etry-error")) file.create(error_file)
-
-    if (length(warnings)) attr(res, "bettermc_warnings") <- warnings
-    if (length(messages)) attr(res, "bettermc_messages") <- messages
-    if (length(conditions)) attr(res, "bettermc_conditions") <- conditions
-
-    if (!is.infinite(mc.compress.chars)) {
-      res <- compress_chars(res, limit = mc.compress.chars,
-                            compress_altreps = mc.compress.altreps)
+    # apply wrapper ----
+    # parallel-apply wrapper to seq_along(X)
+    X_seq <- if (mc.force.fork && length(X) == 1L) {
+      c(0L, 1L)
+    } else {
+      seq_along(X)
+    }
+    withCallingHandlers(
+      res <- parallel::mclapply(
+        X = X_seq, FUN = wrapper, ... = ...,
+        mc.preschedule = mc.preschedule, mc.set.seed = mc.set.seed,
+        mc.silent = mc.silent, mc.cores = mc.cores,
+        mc.cleanup = mc.cleanup, mc.allow.recursive = mc.allow.recursive,
+        affinity.list = affinity.list
+      ),
+      warning = function(w) {
+        if (!warning_from_user_code) {
+          tryInvokeRestart("muffleWarning")
+        }
+        warning_from_user_code <<- FALSE
+      }
+    )
+    if (mc.force.fork && length(X) == 1L) {
+      res <- res[-1L]
     }
 
-    if (!is.infinite(mc.share.vectors)) {
-      res <- vectors2shm(res, limit = mc.share.vectors,
-                         share_altreps = mc.share.altreps,
-                         copy = mc.share.copy,
-                         name_prefix = shm_prefix)
+    # process wrapper results ----
+    # if there is an error in our wrapper code it will be caught by the
+    # try-wrapper of parallel::mclapply; in this case we must always fail
+    if (any(wrapper_error <-
+            vapply(res, inherits, logical(1L), what = "try-error") &
+            !vapply(res, inherits, logical(1L), what = "etry-error"))) {
+      orig_message <- res[[which(wrapper_error)[1]]]
+      msg <- "error in bettermc wrapper code; first original message:\n\n" %+%
+        paste0(capture.output(orig_message), collapse = "\n")
+      stop(msg)
+    }
+
+    # number of results affected by fatal error(s)
+    mc_fatal <- sum(vapply(res, is.null, logical(1L)))
+
+    if (mc.progress) {
+      # ensure that the child process printing the progress bar is unblocked in
+      # case of fatal errors (calling sem_post more often than actually required
+      # does not harm)
+      for (i in seq_len(mc_fatal)) {
+        sem_post(sem)
+      }
+      # suppressWarnings due to https://bugs.r-project.org/bugzilla/show_bug.cgi?id=18078:
+      # we don't really mind if the progress_job was erroneously killed, but we
+      # don't want to see a warning because of this;
+      # if there is a warning signaled then most probably the progress process
+      # was killed -> clear the incomplete line on stderr
+      withCallingHandlers(parallel::mccollect(progress_job),
+                          warning = function(w) {
+                            cat("\r", file = stderr())
+                            tryInvokeRestart("muffleWarning")
+                          })
+    }
+
+    if (mc_fatal) {
+      msg <- "at least one scheduled core did not return results;" %\%
+        "maybe it was killed (by the Linux Out of Memory Killer ?) or there" %\%
+        "was a fatal error in the forked process(es)"
+      if (tries_left) {
+        message(msg)
+      } else if (mc.allow.fatal) {
+        warning(msg)
+      } else {
+        stop(msg)
+      }
     }
 
     if (mc.shm.ipc) {
-      # if copy2shm fails we deliberately sacrifice the serialized result and
-      # let parallel::mclapply serialize it again because returning raw vectors
-      # used to be fairly buggy
-      # (cf. e.g. https://bugs.r-project.org/bugzilla/show_bug.cgi?id=17779)
-      res_serial <- serialize(res, NULL, xdr = FALSE)
-      shm_obj <- copy2shm(res_serial, paste0(shm_prefix, 0))
+      res <- lapply(res, function(e) {
+        if (inherits(e, "shm_obj")) {
+          unserialize(allocate_from_shm(e))
+        } else {
+          # there was a fatal error and mc.allow.fatal == TRUE, i.e. e is NULL
+          # - or -
+          # we signaled an error (outside of etry), e.g. warning to error or
+          # due to failing early
+          # - or -
+          # copy2shm failed in the child process
+          e
+        }
+      })
+    }
 
-      if (inherits(shm_obj, "shm_obj")) {
-        res <- shm_obj
+    if (!is.infinite(mc.share.vectors)) {
+      res <- shm2vectors(res)
+    }
+
+    if (!is.infinite(mc.compress.chars)) {
+      res <- uncompress_chars(res)
+    }
+
+    if (mc.stdout == "capture") {
+      lapply(seq_along(res), function(i) {
+        e <- res[[i]]
+        if (!is.null(attr(e, "bettermc_output"))) {
+          cat(paste0(sprintf("%5d: ", i) ,attr(e, "bettermc_output")), sep = "\n")
+          attr(e, "bettermc_output") <- NULL
+        }
+      })
+    }
+
+    if (mc.warnings == "signal") {
+      lapply(seq_along(res), function(i) {
+        e <- res[[i]]
+        if (!is.null(attr(e, "bettermc_warnings"))) {
+          lapply(attr(e, "bettermc_warnings"), function(w) {
+            w$message <- sprintf("%d: %s", i, w$message)
+            warning(w)
+          })
+          attr(e, "bettermc_warnings") <- NULL
+        }
+      })
+    }
+
+    if (mc.messages == "signal") {
+      lapply(seq_along(res), function(i) {
+        e <- res[[i]]
+        if (!is.null(attr(e, "bettermc_messages"))) {
+          lapply(attr(e, "bettermc_messages"), function(m) {
+            m$message <- sprintf("%5d: %s", i, m$message)
+            message(m)
+          })
+          attr(e, "bettermc_messages") <- NULL
+        }
+      })
+    }
+
+    if (mc.conditions == "signal") {
+      lapply(seq_along(res), function(i) {
+        e <- res[[i]]
+        if (!is.null(attr(e, "bettermc_conditions"))) {
+          lapply(attr(e, "bettermc_conditions"), function(cond) {
+            cond$message <- sprintf("%5d: %s", i, cond$message)
+            signalCondition(cond)
+          })
+          attr(e, "bettermc_conditions") <- NULL
+        }
+      })
+    }
+
+    if (any(mc_error <- vapply(res, inherits, logical(1L), what = "etry-error"))) {
+      orig_message <- res[[which(mc_error)[1]]]
+      msg <- "error(s) occured during mclapply; first original message:\n\n" %+%
+        paste0(capture.output(orig_message), collapse = "\n")
+
+      # ?options on warning.length: "sets the truncation limit for error and
+      # warning messages. A non-negative integer, with allowed values
+      # 100...8170, default 1000."
+      #
+      # we increase this here because msg contains the traceback, which is
+      # easily longer than 1000
+      opt_bk <- options(warning.length = 8170L)
+      on.exit(options(opt_bk), add = TRUE)
+
+      if (tries_left) {
+        message(msg)
+      } else if (mc.allow.error) {
+        warning(msg)
       } else {
-        message(shm_obj)
+        if (mc.dump.frames != "no") {
+          if (grepl("^file://", mc.dumpto)) {
+            saveRDS(res, gsub("^file://", "", mc.dumpto))
+          } else {
+            assign(mc.dumpto, res, .GlobalEnv)
+          }
+        }
+        stop(msg)
       }
     }
 
     res
   }
 
-  # parallel-apply wrapper to seq_along(X)
-  withCallingHandlers(
-    res <- parallel::mclapply(
-      X = seq_along(X), FUN = wrapper, ... = ...,
-      mc.preschedule = mc.preschedule, mc.set.seed = mc.set.seed,
-      mc.silent = mc.silent, mc.cores = mc.cores,
-      mc.cleanup = mc.cleanup, mc.allow.recursive = mc.allow.recursive,
-      affinity.list = affinity.list
-    ),
-    warning = function(w) {
-      if (!warning_from_user_code) {
-        tryInvokeRestart("muffleWarning")
-      }
-      warning_from_user_code <<- FALSE
-    }
-  )
-
-  # if there is an error in our wrapper code it will be caught by the
-  # try-wrapper of parallel::mclapply; in this case we must always fail
-  if (any(wrapper_error <-
-          vapply(res, inherits, logical(1L), what = "try-error") &
-          !vapply(res, inherits, logical(1L), what = "etry-error"))) {
-    orig_message <- res[[which(wrapper_error)[1]]]
-    msg <- "error in bettermc wrapper code; first original message:\n\n" %+%
-      paste0(capture.output(orig_message), collapse = "\n")
-    stop(msg)
-  }
-
-  # number of results affected by fatal error(s)
-  # - in old versions of the parallel package, fatal error would make res to be
-  #   shorter than X (cf. https://bugs.r-project.org/bugzilla/show_bug.cgi?id=17343)
-  # - in new versions the respective element(s) will be NULL
-  mc_fatal <- length(X) - length(res) + sum(vapply(res, is.null, logical(1L)))
-
-  if (mc.progress) {
-    # ensure that the child process printing the progress bar is unblocked in
-    # case of fatal errors (calling sem_post more often than actually required
-    # does not harm)
-    for (i in seq_len(mc_fatal)) {
-      sem_post(sem)
-    }
-    parallel::mccollect(progress_job)
-  }
-
-  if (mc_fatal) {
-    msg <- "at least one scheduled core did not return results;" %\%
-      "maybe it was killed (be the Linux Out of Memory Killer ?) or there" %\%
-      "was a fatal error in the forked process(es)"
-    if (mc.allow.fatal) {
-      warning(msg)
+  # loop over tries calling core ----
+  mc.cores_seq <- if (mc.retry >= 1L) {
+    rep(mc.cores, mc.retry + 1L)
+  } else if (mc.retry <= -1L) {
+    if (mc.force.fork) {
+      as.integer(seq(mc.cores, 2L, length.out = abs(mc.retry) + 1L))
     } else {
-      stop(msg)
+      as.integer(seq(mc.cores, 1L, length.out = abs(mc.retry) + 1L))
     }
+  } else {
+    mc.cores
   }
 
-  if (mc.shm.ipc) {
-    res <- lapply(res, function(e) {
-      if (inherits(e, "shm_obj")) {
-        unserialize(allocate_from_shm(e))
-      } else {
-        # there was a fatal error and mc.allow.fatal == TRUE, i.e. e is NULL
-        # - or -
-        # we signalled an error (outside of etry), e.g. warning to error or
-        # due to failing early
-        # - or -
-        # copy2shm failed in the child process
-        e
-      }
-    })
-  }
+  X_seq <- seq_along(X)
+  X_orig <- X
+  res <- vector("list", length(X))
+  for (i in seq_along(mc.cores_seq)) {
+    mc.cores <- mc.cores_seq[i]
+    tries_left <- i < length(mc.cores_seq)
 
-  if (!is.infinite(mc.share.vectors)) {
-    res <- shm2vectors(res)
-  }
+    res[X_seq] <- core(tries_left)
+    X_seq <- which(unlist(lapply(res, function(e) is.null(e) || inherits(e, c("etry-error", "error")))))
 
-  if (!is.infinite(mc.compress.chars)) {
-    res <- uncompress_chars(res)
-  }
-
-  if (mc.stdout == "capture") {
-    lapply(seq_along(res), function(i) {
-      e <- res[[i]]
-      if (!is.null(attr(e, "bettermc_output"))) {
-        cat(paste0(sprintf("%5d: ", i) ,attr(e, "bettermc_output")), sep = "\n")
-        attr(e, "bettermc_output") <- NULL
-      }
-    })
-  }
-
-  if (mc.warnings == "signal") {
-    lapply(seq_along(res), function(i) {
-      e <- res[[i]]
-      if (!is.null(attr(e, "bettermc_warnings"))) {
-        lapply(attr(e, "bettermc_warnings"), function(w) {
-          w$message <- sprintf("%d: %s", i, w$message)
-          warning(w)
-        })
-        attr(e, "bettermc_warnings") <- NULL
-      }
-    })
-  }
-
-  if (mc.messages == "signal") {
-    lapply(seq_along(res), function(i) {
-      e <- res[[i]]
-      if (!is.null(attr(e, "bettermc_messages"))) {
-        lapply(attr(e, "bettermc_messages"), function(m) {
-          m$message <- sprintf("%5d: %s", i, m$message)
-          message(m)
-        })
-        attr(e, "bettermc_messages") <- NULL
-      }
-    })
-  }
-
-  if (mc.conditions == "signal") {
-    lapply(seq_along(res), function(i) {
-      e <- res[[i]]
-      if (!is.null(attr(e, "bettermc_conditions"))) {
-        lapply(attr(e, "bettermc_conditions"), function(cond) {
-          cond$message <- sprintf("%5d: %s", i, cond$message)
-          signalCondition(cond)
-        })
-        attr(e, "bettermc_conditions") <- NULL
-      }
-    })
-  }
-
-  if (any(mc_error <- vapply(res, inherits, logical(1L), what = "etry-error"))) {
-    orig_message <- res[[which(mc_error)[1]]]
-    msg <- "error(s) occured during mclapply; first original message:\n\n" %+%
-      paste0(capture.output(orig_message), collapse = "\n")
-    if (mc.allow.error) {
-      warning(msg)
-    } else {
-      if (mc.dump.frames != "no") {
-        if (grepl("^file://", mc.dumpto)) {
-          saveRDS(res, gsub("^file://", "", mc.dumpto))
-        } else {
-          assign(mc.dumpto, res, .GlobalEnv)
-        }
-      }
-      stop(msg)
-    }
+    if (length(X_seq) == 0L) break
+    X <- X_orig[X_seq]
   }
 
   # remove the list()-wrapper around each (non-error) element
   res <- lapply(res, function(e) if (inherits(e, "etry-error") || inherits(e, "error")) e else e[[1L]])
 
-  # length check due to https://bugs.r-project.org/bugzilla/show_bug.cgi?id=17343
-  if (length(res) == length(X)) names(res) <- names(X)
-
+  names(res) <- names(X)
   res
 }
 

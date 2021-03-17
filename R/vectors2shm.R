@@ -16,8 +16,10 @@ vectors2shm <- function(l, limit = 2L,
     if (isS4(l)) return(l)
     if (!OK) return(l)
     if (is.environment(l)) {
+      # nocov start
       if (isTRUE(attr(l, "bettermc_recurse_protect"))) return(l)
       attr(l, "bettermc_recurse_protect") <- TRUE
+      # nocov end
     }
     cls <- attr(l, "class")
     class(l) <- NULL
@@ -25,6 +27,7 @@ vectors2shm <- function(l, limit = 2L,
     idx <- if (is.list(l)) {
       which(vapply(l, function(e) !identical(e, quote(expr = )), logical(1)))
     } else {
+      # nocov start
       all_names <- names(l)
       ok_names <-
         !vapply(all_names, is.missing.arg, logical(1), env = l) &
@@ -32,6 +35,7 @@ vectors2shm <- function(l, limit = 2L,
         !vapply(all_names, bindingIsActive, logical(1), env = l) &
         !vapply(all_names, bindingIsLocked, logical(1), env = l)
       all_names[ok_names]
+      # nocov end
     }
 
     for (i in idx) {
@@ -80,8 +84,10 @@ shm2vectors <- function(l) {
     if (is.environment(l)) return(l)
     if (isS4(l)) return(l)
     if (is.environment(l)) {
+      # nocov start
       if (isTRUE(attr(l, "bettermc_recurse_protect"))) return(l)
       attr(l, "bettermc_recurse_protect") <- TRUE
+      # nocov end
     }
 
     cls <- attr(l, "class")
@@ -90,6 +96,7 @@ shm2vectors <- function(l) {
     idx <- if (is.list(l)) {
       which(vapply(l, function(e) !identical(e, quote(expr = )), logical(1)))
     } else {
+      # nocov start
       all_names <- names(l)
       ok_names <-
         !vapply(all_names, is.missing.arg, logical(1), env = l) &
@@ -97,6 +104,7 @@ shm2vectors <- function(l) {
         !vapply(all_names, bindingIsActive, logical(1), env = l) &
         !vapply(all_names, bindingIsLocked, logical(1), env = l)
       all_names[ok_names]
+      # nocov end
     }
 
     # we loop over idx in reverse order and hence also allocate from the shared

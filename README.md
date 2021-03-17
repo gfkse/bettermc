@@ -39,32 +39,57 @@ f <- function(x) g(as.character(x))
 bettermc::mclapply(1:2, f)
 ```
 
-    ## Error in bettermc::mclapply(1:2, f) :
-    ##   error(s) occured during mclapply; first original message:
-
+    ## Error in core(tries_left): error(s) occured during mclapply; first original message:
+    ## 
     ## Error: non-numeric argument to binary operator
-
+    ## 
     ## Traceback:
-    ## 3: g(as.character(x))
-    ## 2: (function (x) 
-    ##    g(as.character(x)))(1L)
-    ## 1: bettermc::mclapply(1:2, f)
-
-    ## Crash dump avilable. Use 'debugger(attr(*, "dump.frames"))' for debugging.
+    ## 51: g(as.character(x)) at <text>#2
+    ## 50: FUN(X, ...)
+    ## 49: withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = mhandler, 
+    ##         condition = chandler) at etry.R#34
+    ## 48: withCallingHandlers(expr, error = function(e) {
+    ...
 
 ``` r
 # in a non-interactive session a file "last.dump.rds" is created
 last.dump <- readRDS("last.dump.rds")
-debugger(attr(last.dump[[1L]], "dump.frames"))
+
+# in an interactive session use debugger() instead of print() for actual debugging
+print(attr(last.dump[[1L]], "dump.frames"))
 ```
 
-    ## Message:  non-numeric argument to binary operatorAvailable environments had calls:
-    ## 1: (function (x) 
-    ## g(as.character(x)))(1)
-    ## 2: #1: g(as.character(x))
-
-    ## Enter an environment number, or 0 to exit  
-    ## Selection: 0
+    ## $`etry(withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = m`
+    ## <environment: 0x55e063f1b038>
+    ## 
+    ## $`etry.R#34: tryCatch(withCallingHandlers(expr, error = function(e) {\n    if `
+    ## <environment: 0x55e063f1afc8>
+    ## 
+    ## $`tryCatchList(expr, classes, parentenv, handlers)`
+    ## <environment: 0x55e063f3a698>
+    ## 
+    ## $`tryCatchOne(expr, names, parentenv, handlers[[1]])`
+    ## <environment: 0x55e063f3dba8>
+    ## 
+    ## $`doTryCatch(return(expr), name, parentenv, handler)`
+    ## <environment: 0x55e063f4c430>
+    ## 
+    ## $`etry.R#34: withCallingHandlers(expr, error = function(e) {\n    if ("max.lin`
+    ## <environment: 0x55e063f52a18>
+    ## 
+    ## $`etry.R#34: withCallingHandlers(list(FUN(X, ...)), warning = whandler, messa`
+    ## <environment: 0x55e063f68868>
+    ## 
+    ## $`FUN(X, ...)`
+    ## <environment: 0x55e064148cc8>
+    ## 
+    ## $`<text>#2: g(as.character(x))`
+    ## <environment: 0x55e064148bb0>
+    ## 
+    ## attr(,"error.message")
+    ## [1] "non-numeric argument to binary operator\n\n"
+    ## attr(,"class")
+    ## [1] "dump.frames"
 
 ### Output, Messages and Warnings
 
@@ -87,9 +112,12 @@ ret <- bettermc::mclapply(1:4, f)
     ##     3: [1] "c"
     ##     4: [1] "d"
 
-    ## Warning in (function (i) : 2: b
+    ## Warning in FUN(X, ...): 2: b
 
     ##     1: a
+
+Similarly, other conditions can also be re-signaled in the parent
+process.
 
 ### POSIX Shared Memory
 
@@ -118,11 +146,11 @@ microbenchmark::microbenchmark(
 
     ## Unit: milliseconds
     ##       expr       min        lq      mean    median        uq       max neval
-    ##  bettermc1  413.2336  437.9781  454.7439  446.8591  455.6911  513.3933    10
-    ##  bettermc2  800.6699  838.7094  898.8214  885.7591  943.9600 1048.1801    10
-    ##  bettermc3 1646.6116 1700.5796 1846.0228 1721.1778 2136.8495 2207.5088    10
-    ##  bettermc4 1468.5487 1604.1130 1906.6661 1864.3084 2172.9592 2525.8540    10
-    ##   parallel 1487.4475 1630.4703 1951.4752 1955.1688 2050.2836 2720.9375    10
+    ##  bettermc1  320.0410  350.3665  369.2490  370.6599  384.5358  414.8268    10
+    ##  bettermc2  603.9296  649.0813  676.4485  682.4288  708.9244  742.5663    10
+    ##  bettermc3 1116.2009 1153.9187 1277.9979 1190.5501 1270.3877 1802.2334    10
+    ##  bettermc4 1200.3030 1313.3324 1591.2849 1544.1784 1852.0342 2004.0813    10
+    ##   parallel 1113.0253 1416.4247 1565.6660 1528.5397 1748.7820 2040.8899    10
 
 In examples `bettermc1` and `bettermc2`, the child processes place the
 columns of the return value `X` in shared memory. The object which needs
@@ -199,8 +227,8 @@ microbenchmark::microbenchmark(
 
     ## Unit: seconds
     ##       expr       min        lq      mean    median        uq       max neval
-    ##  bettermc1  7.990312  7.990312  7.990312  7.990312  7.990312  7.990312     1
-    ##   parallel 42.785266 42.785266 42.785266 42.785266 42.785266 42.785266     1
+    ##  bettermc1  5.378616  5.378616  5.378616  5.378616  5.378616  5.378616     1
+    ##   parallel 32.200891 32.200891 32.200891 32.200891 32.200891 32.200891     1
 
 By default, `bettermc` replaces character vectors with objects of type
 `char_map` before returning them to the parent process:
@@ -211,8 +239,8 @@ str(X_comp)
 ```
 
     ## List of 3
-    ##  $ chars     : chr [1:999896] "0.221996400272474" "0.219319898169488" "0.627548369579017" "0.1049316492863" ...
-    ##  $ idx       : int [1:30000000] 76539 76540 76541 76542 76543 76544 76545 76546 76547 76548 ...
+    ##  $ chars     : chr [1:999869] "0.427193737355992" "0.165682514430955" "0.307766162557527" "0.5674047768116" ...
+    ##  $ idx       : int [1:30000000] 15549 15550 15551 15552 15553 15554 15555 15556 15557 15558 ...
     ##  $ attributes: NULL
     ##  - attr(*, "class")= chr "char_map"
 
@@ -243,5 +271,101 @@ microbenchmark::microbenchmark(
 
     ## Unit: seconds
     ##      expr      min       lq     mean   median       uq      max neval
-    ##  char_map 1.598385 1.624316 1.642065 1.650246 1.663906 1.677565     3
-    ##     match 7.093903 7.112660 7.295698 7.131416 7.396595 7.661773     3
+    ##  char_map 1.767851 1.815203 1.836038 1.862556 1.870132 1.877708     3
+    ##     match 4.400479 4.450915 4.555137 4.501351 4.632466 4.763580     3
+
+### Retries
+
+`bettermc` supports automatic retries on both fatal and non-fatal
+errors. `mc.force.fork` ensures that `FUN` is called in a child process,
+even if `X` is of length 1. This is useful if `FUN` might encounter a
+fatal error and we want to protect the parent process against it. With
+retires, `length(X)` might drop to 1 if all other values could already
+be processed. This is also why we need `mc.force.fork` in the following
+example:
+
+``` r
+set.seed(123)
+res <-
+  bettermc::mclapply(1:20, function(i) {
+    r <- runif(1)
+    if (r < 0.25)
+      system(paste0("kill ", Sys.getpid()))
+    else if (r < 0.5)
+      stop(i)
+    else
+      i
+  }, mc.retry = 50, mc.cores = 10, mc.force.fork = TRUE)
+```
+
+    ## at least one scheduled core did not return results; maybe it was killed (by the Linux Out of Memory Killer ?) or there was a fatal error in the forked process(es)
+
+    ## error(s) occured during mclapply; first original message:
+    ## 
+    ## Error: 2
+    ## 
+    ## Traceback:
+    ## 46: stop(i) at <text>#5
+    ## 45: FUN(X, ...)
+    ## 44: withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = mhandler, 
+    ##         condition = chandler) at etry.R#34
+    ## 43: withCallingHandlers(expr, error = function(e) {
+    ...
+
+    ## at least one scheduled core did not return results; maybe it was killed (by the Linux Out of Memory Killer ?) or there was a fatal error in the forked process(es)
+
+    ## error(s) occured during mclapply; first original message:
+    ## 
+    ## Error: 2
+    ## 
+    ## Traceback:
+    ## 46: stop(i) at <text>#5
+    ## 45: FUN(X, ...)
+    ## 44: withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = mhandler, 
+    ##         condition = chandler) at etry.R#34
+    ## 43: withCallingHandlers(expr, error = function(e) {
+    ...
+
+    ## error(s) occured during mclapply; first original message:
+    ## 
+    ## Error: 4
+    ## 
+    ## Traceback:
+    ## 46: stop(i) at <text>#5
+    ## 45: FUN(X, ...)
+    ## 44: withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = mhandler, 
+    ##         condition = chandler) at etry.R#34
+    ## 43: withCallingHandlers(expr, error = function(e) {
+    ...
+
+    ## at least one scheduled core did not return results; maybe it was killed (by the Linux Out of Memory Killer ?) or there was a fatal error in the forked process(es)
+
+``` r
+stopifnot(identical(res, as.list(1:20)))
+```
+
+Additionally, it is possible to automatically decrease the number of
+cores with every retry by specifying a negative value for `mc.retry`.
+This is useful if we expect failures to be caused simply by too many
+concurrent processes, e.g. if system load or the size if input data is
+unpredictable and might lead to the Linux Out Of Memory Killer stepping
+in. In such a case it makes sense to retry using fewer concurrent
+processes:
+
+``` r
+ppid <- Sys.getpid()
+res <-
+  bettermc::mclapply(1:20, function(i) {
+    Sys.sleep(0.25)  # wait for the other child processes
+    number_of_child_processes <- length(system(paste0("pgrep -P ", ppid), intern = TRUE))
+    if (number_of_child_processes >= 5) system(paste0("kill ", Sys.getpid()))
+    i
+  }, mc.retry = -3, mc.cores = 10, mc.force.fork = TRUE)
+```
+
+    ## at least one scheduled core did not return results; maybe it was killed (by the Linux Out of Memory Killer ?) or there was a fatal error in the forked process(es)
+    ## at least one scheduled core did not return results; maybe it was killed (by the Linux Out of Memory Killer ?) or there was a fatal error in the forked process(es)
+
+``` r
+stopifnot(identical(res, as.list(1:20)))
+```

@@ -6,6 +6,47 @@ output:
 
 ```{r, include=FALSE}
 knitr::opts_chunk$set(cache = TRUE)
+
+# knitr hook function to allow an output.lines option
+# e.g., 
+#   output.lines=12 prints lines 1:12 ...
+#   output.lines=1:12 does the same
+#   output.lines=3:15 prints lines ... 3:15 ...
+#   output.lines=-(1:8) removes lines 1:8 and prints ... 9:n ...
+#   No allowance for anything but a consecutive range of lines
+#   
+# adopted from https://stackoverflow.com/a/23205752
+
+create_output_hook <- function(type) {
+  hook_output <- knitr::knit_hooks$get(type)
+  function(x, options) {
+    lines <- options$output.lines
+    if (is.null(lines)) {
+      return(hook_output(x, options))  # pass to default hook
+    }
+    x <- unlist(strsplit(x, "\n"))
+    more <- "..."
+    if (length(lines) == 1) {  # first n lines
+      if (length(x) > lines) {
+        # truncate the output, but add ...
+        x <- c(head(x, lines), more)
+      }
+    } else {
+      x <- c(if (abs(lines[1]) > 1) more else NULL, 
+             x[lines], 
+             if (length(x) > lines[abs(length(lines))]) more else NULL
+      )
+    }
+    # paste these lines together
+    x <- paste(c(x, ""), collapse = "\n")
+    hook_output(x, options)
+  }
+}
+
+knitr::knit_hooks$set(output = create_output_hook("output"))
+knitr::knit_hooks$set(error = create_output_hook("error"))
+knitr::knit_hooks$set(warning = create_output_hook("warning"))
+knitr::knit_hooks$set(message = create_output_hook("message"))
 ```
 
 # bettermc
@@ -34,43 +75,23 @@ Here is a short overview on its main features ...
 
 ### Traceback and Crashdumps
 By default, crashdumps and full tracebacks are generated on errors in child processes:
-``` r
+```{r traceback, error=TRUE, output.lines=10}
 g <- function(x) x + 1
 f <- function(x) g(as.character(x))
 bettermc::mclapply(1:2, f)
 ```
-
-    ## Error in bettermc::mclapply(1:2, f) :
-    ##   error(s) occured during mclapply; first original message:
-
-    ## Error: non-numeric argument to binary operator
-
-    ## Traceback:
-    ## 3: g(as.character(x))
-    ## 2: (function (x) 
-    ##    g(as.character(x)))(1L)
-    ## 1: bettermc::mclapply(1:2, f)
-
-    ## Crash dump avilable. Use 'debugger(attr(*, "dump.frames"))' for debugging.
-
-``` r
+```{r crashdump}
 # in a non-interactive session a file "last.dump.rds" is created
 last.dump <- readRDS("last.dump.rds")
-debugger(attr(last.dump[[1L]], "dump.frames"))
+
+# in an interactive session use debugger() instead of print() for actual debugging
+print(attr(last.dump[[1L]], "dump.frames"))
 ```
-
-    ## Message:  non-numeric argument to binary operatorAvailable environments had calls:
-    ## 1: (function (x) 
-    ## g(as.character(x)))(1)
-    ## 2: #1: g(as.character(x))
-
-    ## Enter an environment number, or 0 to exit  
-    ## Selection: 0
 
 ### Output, Messages and Warnings
 In contrast to `parallel::mclapply`, neither output nor messages nor warnings from the child processes are lost.
 All of these can be forwarded to the parent process and are prefix with the index of the function invocation from which they originate:
-```{r}
+```{r output}
 f <- function(i) {
   if (i == 1) message(letters[i])
   else if (i == 2) warning(letters[i])
@@ -80,12 +101,13 @@ f <- function(i) {
 }
 ret <- bettermc::mclapply(1:4, f)
 ```
+Similarly, other conditions can also be re-signaled in the parent process.
 
 ### POSIX Shared Memory
 Many types of objects can be returned from the child processes using POSIX shared memory.
 This includes e.g. logical, numeric, complex and raw vectors and arrays as well as factors.
 In doing so, the overhead of getting larger results back into the parent R process is reduced:
-```{r}
+```{r shm_performance}
 X <- data.frame(
   x = runif(3e7),
   y = sample(c(TRUE, FALSE), 3e7, TRUE),
@@ -105,14 +127,14 @@ microbenchmark::microbenchmark(
 
 In examples `bettermc1` and `bettermc2`, the child processes place the columns of the return value `X` in shared memory. 
 The object which needs to be serialized for transfer from child to parent processes hence becomes:
-```{r}
+```{r vectors2shm}
 X_shm <- bettermc:::vectors2shm(X, name_prefix = "/bettermc_README_")
 str(X_shm)
 ```
 
 Column `z` is an `ALTREP` and, because it can be serialized efficiently, is left alone by default. 
 The parent process can recover the original object from `X_shm`:
-```{r}
+```{r shm2vectors}
 Y <- bettermc:::shm2vectors(X_shm)
 stopifnot(identical(X, Y))
 ```
@@ -129,7 +151,7 @@ In `bettermc3`, the original `X` is serialized and the resulting raw vector is p
 ### Character Compression
 In practice, character vectors often contain a substantial amount of duplicated values.
 This is exploited by `bettermc` to speed up the returning of larger character vectors from child processes:
-```{r}
+```{r char_compression}
 X <- rep(as.character(runif(1e6)), 30)
 f <- function(i) X
 microbenchmark::microbenchmark(
@@ -140,14 +162,14 @@ microbenchmark::microbenchmark(
 ```
 
 By default, `bettermc` replaces character vectors with objects of type `char_map` before returning them to the parent process:
-```{r}
+```{r compress_chars}
 X_comp <- bettermc::compress_chars(X)
 str(X_comp)
 ```
 
 The important detail here is the length of the `chars` vector, which just contains the unique elements of `X` and hence is significantly faster to (de)serialize than the original vector. The parent process can recover the original character vectors:
 
-```{r}
+```{r uncompress_chars}
 Y <- bettermc::uncompress_chars(X_comp)
 stopifnot(identical(X, Y))
 ```
@@ -155,10 +177,47 @@ stopifnot(identical(X, Y))
 The functions `compress_chars()` and `uncompress_chars()` recursively walk the return value and apply the functions `char_map()` and `map2char()`, respectively.
 
 `char_map()` is implemented using a radix sort, which makes it very efficient:
-```{r}
+```{r char_map}
 microbenchmark::microbenchmark(
   char_map = bettermc::char_map(X),
   match = {chars <- unique(X); idx <- match(X, chars)},
   times = 3, setup = gc()
 )
+```
+
+### Retries
+`bettermc` supports automatic retries on both fatal and non-fatal errors. 
+`mc.force.fork` ensures that `FUN` is called in a child process, even if `X` is of length 1.
+This is useful if `FUN` might encounter a fatal error and we want to protect the parent process against it.
+With retires, `length(X)` might drop to 1 if all other values could already be processed.
+This is also why we need `mc.force.fork` in the following example:
+```{r retry, output.lines=10}
+set.seed(123)
+res <-
+  bettermc::mclapply(1:20, function(i) {
+    r <- runif(1)
+    if (r < 0.25)
+      system(paste0("kill ", Sys.getpid()))
+    else if (r < 0.5)
+      stop(i)
+    else
+      i
+  }, mc.retry = 50, mc.cores = 10, mc.force.fork = TRUE)
+stopifnot(identical(res, as.list(1:20)))
+```
+
+Additionally, it is possible to automatically decrease the number of cores with every retry by specifying a negative value for `mc.retry`.
+This is useful if we expect failures to be caused simply by too many concurrent processes, e.g. if system load or the size if input data is unpredictable and might lead to the Linux Out Of Memory Killer stepping in.
+In such a case it makes sense to retry using fewer concurrent processes:
+```{r neg_retry}
+ppid <- Sys.getpid()
+res <-
+  bettermc::mclapply(1:20, function(i) {
+    Sys.sleep(0.25)  # wait for the other child processes
+    number_of_child_processes <- length(system(paste0("pgrep -P ", ppid), intern = TRUE))
+    if (number_of_child_processes >= 5) system(paste0("kill ", Sys.getpid()))
+    i
+  }, mc.retry = -3, mc.cores = 10, mc.force.fork = TRUE)
+
+stopifnot(identical(res, as.list(1:20)))
 ```

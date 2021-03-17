@@ -17,7 +17,8 @@ mclapply(
   affinity.list = NULL,
   mc.allow.fatal = FALSE,
   mc.allow.error = FALSE,
-  mc.fail.early = !mc.allow.error,
+  mc.retry = 0L,
+  mc.fail.early = !(mc.allow.error || mc.retry != 0L),
   mc.dump.frames = c("partial", "full", "full_global", "no"),
   mc.dumpto = ifelse(interactive(), "last.dump", "file://last.dump.rds"),
   mc.stdout = c("capture", "output"),
@@ -31,6 +32,7 @@ mclapply(
   mc.share.altreps = c("no", "yes", "if_allocated"),
   mc.share.copy = TRUE,
   mc.shm.ipc = getOption("bettermc.use_shm", TRUE),
+  mc.force.fork = FALSE,
   mc.progress = interactive()
 )
 }
@@ -91,6 +93,16 @@ mclapply(
 \item{mc.allow.error}{should non-fatal errors in child processes make
 \code{mclapply} fail (default) or merely trigger a warning?}
 
+\item{mc.retry}{\code{abs(mc.retry)} is the maximum number of retries of
+failed applications of \code{FUN} in case of both fatal and non-fatal
+errors. This is useful if we expect \code{FUN} to fail either randomly (e.g.
+non-convergence of a model) or temporarily (e.g. database connections).
+Additionally, if \code{mc.retry <= -1}, the value of \code{mc.cores} is
+gradually decreased with each retry to a minimum of 1 (2 if
+\code{mc.force.fork = TRUE}). This is useful if we expect failures due to
+too many parallel processes, e.g. the Linux Out Of Memory Killer sacrificing
+some of the child processes.}
+
 \item{mc.fail.early}{should we try to fail fast after encountering the first
 (non-fatal) error in a child process?}
 
@@ -114,7 +126,7 @@ other conditions in the child processes be handled? "signal" records all
 warnings/messages/conditions in the child processes and signals them in the
 master process. "stop" converts warnings (only) into non-fatal errors in the
 child processes directly. "output" directly forwards the messages to stderr
-of the parent; no condition is signalled in the parent process nor is the
+of the parent; no condition is signaled in the parent process nor is the
 output capturable/sinkable. "ignore" means that the conditions are not
 forwarded in any way to the parent process. Options prefixed with "m"
 additionally try to invoke the "muffleWarning"/"muffleMessage" restart in
@@ -150,6 +162,14 @@ copy of it (\code{TRUE})? See \code{\link{copy2shm}} for the implications.}
 \item{mc.shm.ipc}{should the results be returned from the child processes
 using POSIX shared memory (cf. \code{\link{copy2shm}})?}
 
+\item{mc.force.fork}{should it be ensured that \code{FUN} is always called in
+a forked child process, even if \code{length(X) == 1}? This is useful if we
+use forking to protect the main R process from fatal errors, memory
+corruption, memory leaks etc. occurring in \code{FUN}. This feature requires
+that \code{mc.cores >= 2} and also ensures that the effective value for
+\code{mc.cores} never drops to less than 2 as a result of \code{mc.retry}
+being negative.}
+
 \item{mc.progress}{should a progress bar be printed to stderr of the parent
 process (package \code{progress} must be installed)?}
 }
@@ -157,12 +177,13 @@ process (package \code{progress} must be installed)?}
 This wrapper for \code{\link[parallel:mclapply]{parallel::mclapply}} adds the
 following features: \itemize{ \item reliably detect if a child process failed
 with a fatal error or if it was killed. \item get tracebacks after non-fatal
-errors in child processes. \item fail early after non-fatal errors in child
-processes. \item get crash dumps from failed child processes. \item capture
-output from child processes. \item track warnings and messages signaled in the
-child processes. \item return results from child processes using POSIX shared
-memory to improve performance. \item compress character vectors in results to
-improve performance. \item display a progress bar.}
+errors in child processes. \item retry on fatal and non-fatal errors. \item
+fail early after non-fatal errors in child processes. \item get crash dumps
+from failed child processes. \item capture output from child processes. \item
+track warnings, messages and other conditions signaled in the child processes.
+\item return results from child processes using POSIX shared memory to improve
+performance. \item compress character vectors in results to improve
+performance. \item display a progress bar.}
 }
 \section{POSIX Shared Memory}{
  The shared memory objects created by
