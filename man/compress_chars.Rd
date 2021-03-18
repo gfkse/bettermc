@@ -33,3 +33,9 @@ The object returned by \code{compress_chars} might be an invalid S3
   be called immediately before and after (de)serializing the object, i.e.
   compress -> serialize -> store/transfer -> de-serialize -> uncompress.
 }
+\section{Lifecycle}{
+
+  \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:
+  alt='[Experimental]'}}}{\strong{[Experimental]}}
+}
+

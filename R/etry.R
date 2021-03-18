@@ -21,6 +21,10 @@
 #'   \code{\link[base:traceback]{.traceback}}, (dump.frames) the crash dump
 #'   which can be examined using \code{\link[utils:debugger]{utils::debugger}}.
 #'
+#' @section Lifecycle:
+#'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options:
+#'   alt='[Stable]'}}}{\strong{[Stable]}}
+#'
 #' @importFrom utils limitedLabels
 #' @export
 etry <- function(expr, silent = FALSE,

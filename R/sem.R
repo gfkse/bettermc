@@ -9,7 +9,9 @@
 #' @param value the initial value of the semaphore (\code{>= 0}).
 #' @param sem an object as returned by \code{sem_open}.
 #'
-#' @note These functions are experimental and might change anytime.
+#' @section Lifecycle:
+#'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:
+#'   alt='[Experimental]'}}}{\strong{[Experimental]}}
 #'
 #' @name sem
 NULL
@@ -54,7 +56,9 @@ sem_unlink <- function(name) {
 #'   undone on process termination. This feature is probably the main reason to
 #'   prefer System V semaphores to POSIX ones.
 #'
-#' @note These functions are experimental and might change anytime.
+#' @section Lifecycle:
+#'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:
+#'   alt='[Experimental]'}}}{\strong{[Experimental]}}
 #'
 #' @name semv
 NULL

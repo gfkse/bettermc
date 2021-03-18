@@ -28,6 +28,9 @@ prefer System V semaphores to POSIX ones.}
 \description{
 Mimic the POSIX semaphore API with System V semaphores.
 }
-\note{
-These functions are experimental and might change anytime.
+\section{Lifecycle}{
+
+  \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:
+  alt='[Experimental]'}}}{\strong{[Experimental]}}
 }
+

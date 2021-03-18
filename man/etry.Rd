@@ -56,3 +56,9 @@ For \code{etry}, the value of the expression if \code{expr} is
 Extended version of \code{\link[base]{try}} with support for tracebacks and
 crash dumps.
 }
+\section{Lifecycle}{
+
+  \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options:
+  alt='[Stable]'}}}{\strong{[Stable]}}
+}
+

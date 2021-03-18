@@ -74,6 +74,12 @@ such.
 See also the general notes on POSIX shared memory under
   \code{\link{mclapply}}.
 }
+\section{Lifecycle}{
+
+  \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options:
+  alt='[Stable]'}}}{\strong{[Stable]}}
+}
+
 \examples{
 x <- runif(100)
 obj <- copy2shm(x, "/random")

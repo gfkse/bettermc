@@ -13,6 +13,10 @@
 #'   be called immediately before and after (de)serializing the object, i.e.
 #'   compress -> serialize -> store/transfer -> de-serialize -> uncompress.
 #'
+#' @section Lifecycle:
+#'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:
+#'   alt='[Experimental]'}}}{\strong{[Experimental]}}
+#'
 #' @export
 compress_chars <- function(l, limit = 0L,
                            compress_altreps = c("if_allocated", "yes", "no")) {
@@ -149,6 +153,10 @@ uncompress_chars <- function(l) {
 #'
 #' names(x) <- 1:100
 #' stopifnot(identical(x, map2char(char_map(x))))
+#'
+#' @section Lifecycle:
+#'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options:
+#'   alt='[Stable]'}}}{\strong{[Stable]}}
 #'
 #' @export
 char_map <- function(x) {

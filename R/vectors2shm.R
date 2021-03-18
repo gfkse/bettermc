@@ -195,6 +195,10 @@ shm2vectors <- function(l) {
 #'   print(obj)
 #' }
 #'
+#' @section Lifecycle:
+#'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options:
+#'   alt='[Stable]'}}}{\strong{[Stable]}}
+#'
 #' @useDynLib bettermc, .registration = TRUE, .fixes = "C_"
 #' @export
 copy2shm <- function(x, name, overwrite = FALSE, copy = TRUE) {

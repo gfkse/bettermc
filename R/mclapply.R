@@ -1,155 +1,160 @@
-#'parallel::mclapply Wrapper for Better Performance, Error Handling and UX
+#' parallel::mclapply Wrapper for Better Performance, Error Handling and UX
 #'
-#'This wrapper for \code{\link[parallel:mclapply]{parallel::mclapply}} adds the
-#'following features: \itemize{ \item reliably detect if a child process failed
-#'with a fatal error or if it was killed. \item get tracebacks after non-fatal
-#'errors in child processes. \item retry on fatal and non-fatal errors. \item
-#'fail early after non-fatal errors in child processes. \item get crash dumps
-#'from failed child processes. \item capture output from child processes. \item
-#'track warnings, messages and other conditions signaled in the child processes.
-#'\item return results from child processes using POSIX shared memory to improve
-#'performance. \item compress character vectors in results to improve
-#'performance. \item display a progress bar.}
+#' This wrapper for \code{\link[parallel:mclapply]{parallel::mclapply}} adds the
+#' following features: \itemize{ \item reliably detect if a child process failed
+#' with a fatal error or if it was killed. \item get tracebacks after non-fatal
+#' errors in child processes. \item retry on fatal and non-fatal errors. \item
+#' fail early after non-fatal errors in child processes. \item get crash dumps
+#' from failed child processes. \item capture output from child processes. \item
+#' track warnings, messages and other conditions signaled in the child
+#' processes. \item return results from child processes using POSIX shared
+#' memory to improve performance. \item compress character vectors in results to
+#' improve performance. \item display a progress bar.}
 #'
-#'@inheritParams parallel::mclapply
-#'@param mc.allow.fatal should fatal errors in child processes make
-#'  \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
-#'  (\code{TRUE})?
+#' @inheritParams parallel::mclapply
+#' @param mc.allow.fatal should fatal errors in child processes make
+#'   \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
+#'   (\code{TRUE})?
 #'
-#'  \code{TRUE} returns objects of classes \code{c("fatal-error", "try-error")}
-#'  for failed invocations. Hence, in contrast to
-#'  \code{\link[parallel:mclapply]{parallel::mclapply}}, it is OK for \code{FUN}
-#'  to return \code{NULL}.
+#'   \code{TRUE} returns objects of classes \code{c("fatal-error", "try-error")}
+#'   for failed invocations. Hence, in contrast to
+#'   \code{\link[parallel:mclapply]{parallel::mclapply}}, it is OK for
+#'   \code{FUN} to return \code{NULL}.
 #'
-#'  \code{mc.allow.fatal} can also be \code{NULL}. In this case \code{NULL} is
-#'  returned, which corresponds to the behavior of
-#'  \code{\link[parallel:mclapply]{parallel::mclapply}}.
-#'@param mc.allow.error should non-fatal errors in child processes make
-#'  \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
-#'  (\code{TRUE})? In the latter case, errors are stored as class
-#'  \code{c("etry-error", "try-error")} objects, which contain full tracebacks
-#'  and potentially crash dumps (c.f. \code{mc.dump.frames} and
-#'  \code{\link{etry}}).
-#'@param mc.retry \code{abs(mc.retry)} is the maximum number of retries of
-#'  failed applications of \code{FUN} in case of both fatal and non-fatal
-#'  errors. This is useful if we expect \code{FUN} to fail either randomly (e.g.
-#'  non-convergence of a model) or temporarily (e.g. database connections).
-#'  Additionally, if \code{mc.retry <= -1}, the value of \code{mc.cores} is
-#'  gradually decreased with each retry to a minimum of 1 (2 if
-#'  \code{mc.force.fork = TRUE}). This is useful if we expect failures due to
-#'  too many parallel processes, e.g. the Linux Out Of Memory Killer sacrificing
-#'  some of the child processes.
-#'@param mc.fail.early should we try to fail fast after encountering the first
-#'  (non-fatal) error in a child process? Such errors will be recorded as
-#'  objects of classes \code{c("fail-early-error", "try-error")}.
-#'@param mc.dump.frames should we \code{\link[utils]{dump.frames}} on non-fatal
-#'  errors in child processes. The default "partial" omits the frames (roughly)
-#'  up to the call of \code{FUN}. See \code{\link{etry}} for the other options.
-#'@param mc.dumpto where to save the result including the dumped frames if
-#'  \code{mc.dump.frames != "no" & mc.allow.error == FALSE}? Either the name of
-#'  the variable to create in the global environment or a path (prefixed with
-#'  "file://") where to save the object.
-#'@param mc.stdout how should standard output in the child processes be handled?
-#'  "capture" captures the output in the child processes and prints it in the
-#'  parent process such that it can be captured, sinked etc. there. "output"
-#'  directly forwards the output to stdout of the parent; it cannot be captured,
-#'  sinked etc. there.
-#'@param mc.warnings,mc.messages,mc.conditions how should warnings, messages and
-#'  other conditions in the child processes be handled? "signal" records all
-#'  warnings/messages/conditions in the child processes and signals them in the
-#'  master process. "stop" converts warnings (only) into non-fatal errors in the
-#'  child processes directly. "output" directly forwards the messages to stderr
-#'  of the parent; no condition is signaled in the parent process nor is the
-#'  output capturable/sinkable. "ignore" means that the conditions are not
-#'  forwarded in any way to the parent process. Options prefixed with "m"
-#'  additionally try to invoke the "muffleWarning"/"muffleMessage" restart in
-#'  the child process.
-#'@param mc.compress.chars should character vectors be compressed using
-#'  \code{\link{char_map}}? Can also be the minimum length of character vectors
-#'  for which to enable compression. This generally increases performance
-#'  because (de)serialization of character vectors is particularly expensive.
-#'@param mc.compress.altreps should a character vector be compressed if it is an
-#'  ALTREP? The default "if_allocated" only does so if the regular
-#'  representation was already created. This was chosen as the default because
-#'  in this case is is the regular representation which would be serialized.
-#'@param mc.share.vectors should non-character \code{\link[base]{atomic}}
-#'  vectors, S3 objects based hereon and factors be returned from the child
-#'  processes using POSIX shared memory (cf. \code{\link{copy2shm}})? Can also
-#'  be the minimum length of vectors for which to use shared memory. This
-#'  generally increases performance because shared memory is a much faster form
-#'  of inter process communication compared to pipes and we do not need to
-#'  serialize the vectors. Note that there is no guarantee that \code{mclapply}
-#'  really uses shared memory even if requested: if \code{\link{copy2shm}}
-#'  fails, the vector will be returned the usual way.
-#'@param mc.share.altreps should a non-character vector be returned from the
-#'  child process using POSIX shared memory if it is an ALTREP?
-#'@param mc.share.copy should the parent process use a vector placed in shared
-#'  memory due to \code{mc.share.vectors} directly (\code{FALSE}) or rather a
-#'  copy of it (\code{TRUE})? See \code{\link{copy2shm}} for the implications.
-#'@param mc.shm.ipc should the results be returned from the child processes
-#'  using POSIX shared memory (cf. \code{\link{copy2shm}})?
-#'@param mc.force.fork should it be ensured that \code{FUN} is always called in
-#'  a forked child process, even if \code{length(X) == 1}? This is useful if we
-#'  use forking to protect the main R process from fatal errors, memory
-#'  corruption, memory leaks etc. occurring in \code{FUN}. This feature requires
-#'  that \code{mc.cores >= 2} and also ensures that the effective value for
-#'  \code{mc.cores} never drops to less than 2 as a result of \code{mc.retry}
-#'  being negative.
-#'@param mc.progress should a progress bar be printed to stderr of the parent
-#'  process (package \code{progress} must be installed)?
+#'   \code{mc.allow.fatal} can also be \code{NULL}. In this case \code{NULL} is
+#'   returned, which corresponds to the behavior of
+#'   \code{\link[parallel:mclapply]{parallel::mclapply}}.
+#' @param mc.allow.error should non-fatal errors in child processes make
+#'   \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
+#'   (\code{TRUE})? In the latter case, errors are stored as class
+#'   \code{c("etry-error", "try-error")} objects, which contain full tracebacks
+#'   and potentially crash dumps (c.f. \code{mc.dump.frames} and
+#'   \code{\link{etry}}).
+#' @param mc.retry \code{abs(mc.retry)} is the maximum number of retries of
+#'   failed applications of \code{FUN} in case of both fatal and non-fatal
+#'   errors. This is useful if we expect \code{FUN} to fail either randomly
+#'   (e.g. non-convergence of a model) or temporarily (e.g. database
+#'   connections). Additionally, if \code{mc.retry <= -1}, the value of
+#'   \code{mc.cores} is gradually decreased with each retry to a minimum of 1 (2
+#'   if \code{mc.force.fork = TRUE}). This is useful if we expect failures due
+#'   to too many parallel processes, e.g. the Linux Out Of Memory Killer
+#'   sacrificing some of the child processes.
+#' @param mc.fail.early should we try to fail fast after encountering the first
+#'   (non-fatal) error in a child process? Such errors will be recorded as
+#'   objects of classes \code{c("fail-early-error", "try-error")}.
+#' @param mc.dump.frames should we \code{\link[utils]{dump.frames}} on non-fatal
+#'   errors in child processes. The default "partial" omits the frames (roughly)
+#'   up to the call of \code{FUN}. See \code{\link{etry}} for the other options.
+#' @param mc.dumpto where to save the result including the dumped frames if
+#'   \code{mc.dump.frames != "no" & mc.allow.error == FALSE}? Either the name of
+#'   the variable to create in the global environment or a path (prefixed with
+#'   "file://") where to save the object.
+#' @param mc.stdout how should standard output in the child processes be
+#'   handled? "capture" captures the output in the child processes and prints it
+#'   in the parent process such that it can be captured, sinked etc. there.
+#'   "output" directly forwards the output to stdout of the parent; it cannot be
+#'   captured, sinked etc. there.
+#' @param mc.warnings,mc.messages,mc.conditions how should warnings, messages
+#'   and other conditions in the child processes be handled? "signal" records
+#'   all warnings/messages/conditions in the child processes and signals them in
+#'   the master process. "stop" converts warnings (only) into non-fatal errors
+#'   in the child processes directly. "output" directly forwards the messages to
+#'   stderr of the parent; no condition is signaled in the parent process nor is
+#'   the output capturable/sinkable. "ignore" means that the conditions are not
+#'   forwarded in any way to the parent process. Options prefixed with "m"
+#'   additionally try to invoke the "muffleWarning"/"muffleMessage" restart in
+#'   the child process.
+#' @param mc.compress.chars should character vectors be compressed using
+#'   \code{\link{char_map}}? Can also be the minimum length of character vectors
+#'   for which to enable compression. This generally increases performance
+#'   because (de)serialization of character vectors is particularly expensive.
+#' @param mc.compress.altreps should a character vector be compressed if it is
+#'   an ALTREP? The default "if_allocated" only does so if the regular
+#'   representation was already created. This was chosen as the default because
+#'   in this case is is the regular representation which would be serialized.
+#' @param mc.share.vectors should non-character \code{\link[base]{atomic}}
+#'   vectors, S3 objects based hereon and factors be returned from the child
+#'   processes using POSIX shared memory (cf. \code{\link{copy2shm}})? Can also
+#'   be the minimum length of vectors for which to use shared memory. This
+#'   generally increases performance because shared memory is a much faster form
+#'   of inter process communication compared to pipes and we do not need to
+#'   serialize the vectors. Note that there is no guarantee that \code{mclapply}
+#'   really uses shared memory even if requested: if \code{\link{copy2shm}}
+#'   fails, the vector will be returned the usual way.
+#' @param mc.share.altreps should a non-character vector be returned from the
+#'   child process using POSIX shared memory if it is an ALTREP?
+#' @param mc.share.copy should the parent process use a vector placed in shared
+#'   memory due to \code{mc.share.vectors} directly (\code{FALSE}) or rather a
+#'   copy of it (\code{TRUE})? See \code{\link{copy2shm}} for the implications.
+#' @param mc.shm.ipc should the results be returned from the child processes
+#'   using POSIX shared memory (cf. \code{\link{copy2shm}})?
+#' @param mc.force.fork should it be ensured that \code{FUN} is always called in
+#'   a forked child process, even if \code{length(X) == 1}? This is useful if we
+#'   use forking to protect the main R process from fatal errors, memory
+#'   corruption, memory leaks etc. occurring in \code{FUN}. This feature
+#'   requires that \code{mc.cores >= 2} and also ensures that the effective
+#'   value for \code{mc.cores} never drops to less than 2 as a result of
+#'   \code{mc.retry} being negative.
+#' @param mc.progress should a progress bar be printed to stderr of the parent
+#'   process (package \code{progress} must be installed)?
 #'
-#'@section POSIX Shared Memory: The shared memory objects created by
-#'  \code{mclapply} are named as follows (this may be subject to change):
-#'  \code{/bmc_ppid_timestamp_idx_cntr} (e.g.
-#'  \code{/bmc_21479_1601366973201_16_10}), with \describe{\item{ppid}{the
-#'  process id of the parent process.}\item{timestamp}{the time at which
-#'  \code{mclapply} was invoked (in milliseconds since epoch; on macOS: seconds
-#'  since epoch, due to its 31-character limit w.r.t. POSIX
-#'  names).}\item{idx}{the index of the current element of \code{X}
-#'  (1-based).}\item{cntr}{an internal counter (1-based) referring to all the
-#'  objects created due to \code{mc.share.vectors} for the current value of
-#'  \code{X}; a value of \code{0} is used for the object created due to
-#'  \code{mc.shm.ipc}.}}
+#' @section POSIX Shared Memory: The shared memory objects created by
+#'   \code{mclapply} are named as follows (this may be subject to change):
+#'   \code{/bmc_ppid_timestamp_idx_cntr} (e.g.
+#'   \code{/bmc_21479_1601366973201_16_10}), with \describe{\item{ppid}{the
+#'   process id of the parent process.}\item{timestamp}{the time at which
+#'   \code{mclapply} was invoked (in milliseconds since epoch; on macOS: seconds
+#'   since epoch, due to its 31-character limit w.r.t. POSIX
+#'   names).}\item{idx}{the index of the current element of \code{X}
+#'   (1-based).}\item{cntr}{an internal counter (1-based) referring to all the
+#'   objects created due to \code{mc.share.vectors} for the current value of
+#'   \code{X}; a value of \code{0} is used for the object created due to
+#'   \code{mc.shm.ipc}.}}
 #'
-#'  \code{bettermc::mclapply} does not err if copying data to shared memory
-#'  fails. It will rather only print a message and return results the usual way.
+#'   \code{bettermc::mclapply} does not err if copying data to shared memory
+#'   fails. It will rather only print a message and return results the usual
+#'   way.
 #'
-#'  POSIX shared memory has (at least) kernel persistence, i.e. it is not
-#'  automatically freed due to process termination, except if the object is/was
-#'  unlinked. \code{bettermc} tries hard to not leave any byte behind, but it
-#'  could happen that unlinking is incomplete if the parent process is
-#'  terminated while \code{bettermc::mclapply} is running.
+#'   POSIX shared memory has (at least) kernel persistence, i.e. it is not
+#'   automatically freed due to process termination, except if the object is/was
+#'   unlinked. \code{bettermc} tries hard to not leave any byte behind, but it
+#'   could happen that unlinking is incomplete if the parent process is
+#'   terminated while \code{bettermc::mclapply} is running.
 #'
-#'  On Linux you can generally inspect the (not-unlinked) objects currently
-#'  stored in shared memory by listing the files under \emph{/dev/shm}.
+#'   On Linux you can generally inspect the (not-unlinked) objects currently
+#'   stored in shared memory by listing the files under \emph{/dev/shm}.
 #'
-#'@section (Linux) Size of POSIX Shared Memory: On Linux, POSIX shared memory is
-#'  implemented using a
-#'  \emph{\href{https://man7.org/linux/man-pages/man5/tmpfs.5.html}{tmpfs}}
-#'  typically mounted under \code{/dev/shm}. If not changed by the distribution,
-#'  the default size of it is 50\% of physical RAM. It can be changed
-#'  (temporarily) by remounting it with a different value for the \emph{size}
-#'  option, e.g. \code{mount -o "remount,size=90\%" /dev/shm}.
+#' @section (Linux) Size of POSIX Shared Memory: On Linux, POSIX shared memory
+#'   is implemented using a
+#'   \emph{\href{https://man7.org/linux/man-pages/man5/tmpfs.5.html}{tmpfs}}
+#'   typically mounted under \code{/dev/shm}. If not changed by the
+#'   distribution, the default size of it is 50\% of physical RAM. It can be
+#'   changed (temporarily) by remounting it with a different value for the
+#'   \emph{size} option, e.g. \code{mount -o "remount,size=90\%" /dev/shm}.
 #'
-#'@section (Linux) POSIX Shared Memory and Transparent Hugepage Support: When
-#'  allocating a shared memory object of at least
-#'  \code{getOption("bettermc.hugepage_limit", 104857600)} bytes of size
-#'  (default is 100 MiB), we use
-#'  \href{https://man7.org/linux/man-pages/man2/madvise.2.html}{\code{madvise}}\code{(...,
-#'   MADV_HUGEPAGE)} to request the allocation of
-#'  \href{https://www.kernel.org/doc/Documentation/vm/transhuge.txt}{(transparent)
-#'   huge pages}. For this to have any effect, the
-#'  \emph{\href{https://man7.org/linux/man-pages/man5/tmpfs.5.html}{tmpfs}} used
-#'  to implement POSIX shared memory on Linux (typically mounted under
-#'  \code{/dev/shm}) must be (re)mounted with option \emph{huge=advise}, i.e.
-#'  \code{mount -o remount,huge=advise /dev/shm}. (The default is
-#'  \code{huge=never}, but this might be distribution-specific.)
+#' @section (Linux) POSIX Shared Memory and Transparent Hugepage Support: When
+#'   allocating a shared memory object of at least
+#'   \code{getOption("bettermc.hugepage_limit", 104857600)} bytes of size
+#'   (default is 100 MiB), we use
+#'   \href{https://man7.org/linux/man-pages/man2/madvise.2.html}{\code{madvise}}\code{(...,
+#'    MADV_HUGEPAGE)} to request the allocation of
+#'   \href{https://www.kernel.org/doc/Documentation/vm/transhuge.txt}{(transparent)
+#'    huge pages}. For this to have any effect, the
+#'   \emph{\href{https://man7.org/linux/man-pages/man5/tmpfs.5.html}{tmpfs}}
+#'   used to implement POSIX shared memory on Linux (typically mounted under
+#'   \code{/dev/shm}) must be (re)mounted with option \emph{huge=advise}, i.e.
+#'   \code{mount -o remount,huge=advise /dev/shm}. (The default is
+#'   \code{huge=never}, but this might be distribution-specific.)
 #'
-#'@seealso \code{\link{copy2shm}}, \code{\link{char_map}},
-#'  \code{\link[parallel:mclapply]{parallel::mclapply}}
+#' @seealso \code{\link{copy2shm}}, \code{\link{char_map}},
+#'   \code{\link[parallel:mclapply]{parallel::mclapply}}
 #'
-#'@importFrom utils capture.output
-#'@export
+#' @section Lifecycle:
+#'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options:
+#'    alt='[Stable]'}}}{\strong{[Stable]}}
+#'
+#' @importFrom utils capture.output
+#' @export
 mclapply <- function(X, FUN, ...,
                      mc.preschedule = TRUE, mc.set.seed = TRUE,
                      mc.silent = FALSE, mc.cores = getOption("mc.cores", 2L),
