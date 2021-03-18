@@ -28,11 +28,15 @@ X <- list(1L, 2, as.raw(3), 1:10, letters, as.numeric(1:10), env = .GlobalEnv, c
 start_time <- Sys.time()
 for (idx in sample.int(nrow(args))) {
   if (Sys.time() - start_time > 20) break
+
+  shm_prefix_copy1 <- gen_posix_name("bmc_c1")
+  shm_prefix_direct1 <- gen_posix_name("bmc_d1")
+
   test_that(paste0(idx, ": ", paste0(names(args), ": ", args[idx, ], collapse = " - ")), {
     X_test <- c(X, list(X), lapply(X, asS4),
                 chmap = list(char_map(letters)),
-                shm1 = list(copy2shm(1:10, paste0("/bettermc_test_copy1_", idx))),
-                shm2 = list(copy2shm(1:10, paste0("/bettermc_test_direct1_", idx), copy = FALSE)))
+                shm1 = list(copy2shm(1:10, paste0(shm_prefix_copy1, idx))),
+                shm2 = list(copy2shm(1:10, paste0(shm_prefix_direct1, idx), copy = FALSE)))
 
     X_exp <- X_test
 
@@ -69,15 +73,17 @@ for (idx in sample.int(nrow(args))) {
     }
 
     if (!args[idx, "mc.share.vectors"]) {
-      bettermc:::unlink_all_shm("/bettermc_test_copy1_", idx)
-      bettermc:::unlink_all_shm("/bettermc_test_direct1_", idx)
+      bettermc:::unlink_all_shm(shm_prefix_copy1, idx)
+      bettermc:::unlink_all_shm(shm_prefix_direct1, idx)
     }
 
+    shm_prefix_copy2 <- gen_posix_name("bmc_c2")
+    shm_prefix_direct2 <- gen_posix_name("bmc_d2")
 
     X_test <- c(X, list(X), lapply(X, asS4),
                 chmap = list(char_map(letters)),
-                shm1 = list(copy2shm(1:10, paste0("/bettermc_test_copy2_", idx))),
-                shm2 = list(copy2shm(1:10, paste0("/bettermc_test_direct2_", idx), copy = FALSE)))
+                shm1 = list(copy2shm(1:10, paste0(shm_prefix_copy2, idx))),
+                shm2 = list(copy2shm(1:10, paste0(shm_prefix_direct2, idx), copy = FALSE)))
 
     X_exp <- X_test
 
@@ -114,8 +120,8 @@ for (idx in sample.int(nrow(args))) {
     }
 
     if (!args[idx, "mc.share.vectors"]) {
-      bettermc:::unlink_all_shm("/bettermc_test_copy2_", idx)
-      bettermc:::unlink_all_shm("/bettermc_test_direct2_", idx)
+      bettermc:::unlink_all_shm(shm_prefix_copy2, idx)
+      bettermc:::unlink_all_shm(shm_prefix_direct2, idx)
     }
 
   })
