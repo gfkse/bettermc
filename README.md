@@ -351,7 +351,7 @@ stopifnot(identical(res, as.list(1:20)))
 Additionally, it is possible to automatically decrease the number of
 cores with every retry by specifying a negative value for `mc.retry`.
 This is useful if we expect failures to be caused simply by too many
-concurrent processes, e.g. if system load or the size if input data is
+concurrent processes, e.g. if system load or the size of input data is
 unpredictable and might lead to the Linux Out Of Memory Killer stepping
 in. In such a case it makes sense to retry using fewer concurrent
 processes:
