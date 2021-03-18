@@ -9,9 +9,17 @@
 #' track warnings, messages and other conditions signaled in the child
 #' processes. \item return results from child processes using POSIX shared
 #' memory to improve performance. \item compress character vectors in results to
-#' improve performance. \item display a progress bar.}
+#' improve performance. \item reproducibly seed all function calls. \item
+#' display a progress bar.}
 #'
 #' @inheritParams parallel::mclapply
+#' @param mc.set.seed \code{TRUE} or \code{FALSE} are directly handled by
+#'   \code{\link[parallel:mclapply]{parallel::mclapply}}. \code{bettermc} also
+#'   supports two additional values: \code{NA} (the default) - seed every
+#'   invocation of \code{FUN} differently but in a reproducible way based on the
+#'   current state of the random number generator in the parent process.
+#'   integerish value - call \code{set.seed(mc.set.seed)} in the parent and then
+#'   continue as if \code{mc.set.seed} was \code{NA}.
 #' @param mc.allow.fatal should fatal errors in child processes make
 #'   \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
 #'   (\code{TRUE})?
@@ -156,7 +164,7 @@
 #' @importFrom utils capture.output
 #' @export
 mclapply <- function(X, FUN, ...,
-                     mc.preschedule = TRUE, mc.set.seed = TRUE,
+                     mc.preschedule = TRUE, mc.set.seed = NA,
                      mc.silent = FALSE, mc.cores = getOption("mc.cores", 2L),
                      mc.cleanup = TRUE, mc.allow.recursive = TRUE,
                      affinity.list = NULL,
@@ -190,6 +198,8 @@ mclapply <- function(X, FUN, ...,
     names(res) <- names(X)
     return(res)
   }
+
+  checkmate::qassert(mc.set.seed, c("b1", "n1"))
 
   checkmate::assert_flag(mc.allow.fatal, null.ok = TRUE)
   checkmate::assert_flag(mc.allow.error)
@@ -247,6 +257,17 @@ mclapply <- function(X, FUN, ...,
 
   root_stop <- make_root_stop()
   root_warning <- make_root_warning()
+
+  if (!isTRUE(mc.set.seed) && !isFALSE(mc.set.seed)) {
+    if (!is.na(mc.set.seed)) set.seed(mc.set.seed)
+    seeds_list <- lapply(seq_len(abs(mc.retry) + 1), function(i) {
+      round(stats::runif(length(X), -.Machine$integer.max, .Machine$integer.max))
+    })
+    mc.set.seed <- TRUE
+  } else {
+    seeds_list <- NULL
+    seeds <- NULL
+  }
 
   # define core ----
   # we need to cleanup after each try, hence the core function such that we can
@@ -356,6 +377,9 @@ mclapply <- function(X, FUN, ...,
         )
       }
 
+      if (!is.null(seeds)) {
+        set.seed(seeds[mc.X.idx])
+      }
       X <- X[[mc.X.idx]]
 
       if (OSTYPE == "linux") {
@@ -682,6 +706,9 @@ mclapply <- function(X, FUN, ...,
   res <- vector("list", length(X))
   for (i in seq_along(mc.cores_seq)) {
     mc.cores <- mc.cores_seq[i]
+    if (!is.null(seeds_list)) {
+      seeds <- seeds_list[[i]][X_seq]
+    }
     tries_left <- i < length(mc.cores_seq)
 
     res[X_seq] <- core(tries_left)

@@ -132,6 +132,27 @@ ret <- bettermc::mclapply(1:4, f)
 ```
 Similarly, other conditions can also be re-signaled in the parent process.
 
+### Reproducible Seeding
+By default, `bettermc` reproducibly seeds all function calls:
+```{r seeding}
+set.seed(538)
+a <- bettermc::mclapply(1:4, function(i) runif(1), mc.cores = 3)
+set.seed(538)
+b <- bettermc::mclapply(1:4, function(i) runif(1), mc.cores = 1)
+a
+stopifnot(identical(a, b))
+```
+
+Compare with `parallel`:
+```{r seeding_parallel, error=TRUE}
+set.seed(594)
+a <- parallel::mclapply(1:4, function(i) runif(1), mc.cores = 3)
+set.seed(594)
+b <- parallel::mclapply(1:4, function(i) runif(1), mc.cores = 3)
+stopifnot(identical(a, b))
+```
+
+
 ### POSIX Shared Memory
 Many types of objects can be returned from the child processes using POSIX shared memory.
 This includes e.g. logical, numeric, complex and raw vectors and arrays as well as factors.
@@ -221,7 +242,7 @@ This is useful if `FUN` might encounter a fatal error and we want to protect the
 With retires, `length(X)` might drop to 1 if all other values could already be processed.
 This is also why we need `mc.force.fork` in the following example:
 ```{r retry, output.lines=10}
-set.seed(123)
+set.seed(456)
 res <-
   bettermc::mclapply(1:20, function(i) {
     r <- runif(1)

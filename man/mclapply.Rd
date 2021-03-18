@@ -9,7 +9,7 @@ mclapply(
   FUN,
   ...,
   mc.preschedule = TRUE,
-  mc.set.seed = TRUE,
+  mc.set.seed = NA,
   mc.silent = FALSE,
   mc.cores = getOption("mc.cores", 2L),
   mc.cleanup = TRUE,
@@ -57,7 +57,13 @@ mclapply(
     have high variance of completion time and not too many values of
     \code{X} compared to \code{mc.cores}.}
 
-\item{mc.set.seed}{See \code{\link[parallel]{mcparallel}}.}
+\item{mc.set.seed}{\code{TRUE} or \code{FALSE} are directly handled by
+\code{\link[parallel:mclapply]{parallel::mclapply}}. \code{bettermc} also
+supports two additional values: \code{NA} (the default) - seed every
+invocation of \code{FUN} differently but in a reproducible way based on the
+current state of the random number generator in the parent process.
+integerish value - call \code{set.seed(mc.set.seed)} in the parent and then
+continue as if \code{mc.set.seed} was \code{NA}.}
 
 \item{mc.silent}{if set to \code{TRUE} then all output on
     \file{stdout} will be suppressed for all parallel processes forked
@@ -198,7 +204,8 @@ from failed child processes. \item capture output from child processes. \item
 track warnings, messages and other conditions signaled in the child
 processes. \item return results from child processes using POSIX shared
 memory to improve performance. \item compress character vectors in results to
-improve performance. \item display a progress bar.}
+improve performance. \item reproducibly seed all function calls. \item
+display a progress bar.}
 }
 \section{POSIX Shared Memory}{
  The shared memory objects created by

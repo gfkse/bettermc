@@ -53,7 +53,7 @@ bettermc::mclapply(1:2, f)
     ## 51: g(as.character(x)) at <text>#2
     ## 50: FUN(X, ...)
     ## 49: withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = mhandler, 
-    ##         condition = chandler) at etry.R#34
+    ##         condition = chandler) at etry.R#38
     ## 48: withCallingHandlers(expr, error = function(e) {
     ...
 
@@ -66,31 +66,31 @@ print(attr(last.dump[[1L]], "dump.frames"))
 ```
 
     ## $`etry(withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = m`
-    ## <environment: 0x5636894034e8>
+    ## <environment: 0x560a32da2f88>
     ## 
-    ## $`etry.R#34: tryCatch(withCallingHandlers(expr, error = function(e) {\n    if `
-    ## <environment: 0x563689403478>
+    ## $`etry.R#38: tryCatch(withCallingHandlers(expr, error = function(e) {\n    if `
+    ## <environment: 0x560a32da2f18>
     ## 
     ## $`tryCatchList(expr, classes, parentenv, handlers)`
-    ## <environment: 0x56368947f6f8>
+    ## <environment: 0x560a32dd2bf0>
     ## 
     ## $`tryCatchOne(expr, names, parentenv, handlers[[1]])`
-    ## <environment: 0x56368948a4b8>
+    ## <environment: 0x560a32dd5808>
     ## 
     ## $`doTryCatch(return(expr), name, parentenv, handler)`
-    ## <environment: 0x56368949da68>
+    ## <environment: 0x560a32dec420>
     ## 
-    ## $`etry.R#34: withCallingHandlers(expr, error = function(e) {\n    if ("max.lin`
-    ## <environment: 0x5636894a7d08>
+    ## $`etry.R#38: withCallingHandlers(expr, error = function(e) {\n    if ("max.lin`
+    ## <environment: 0x560a32df7798>
     ## 
-    ## $`etry.R#34: withCallingHandlers(list(FUN(X, ...)), warning = whandler, messa`
-    ## <environment: 0x5636894ce420>
+    ## $`etry.R#38: withCallingHandlers(list(FUN(X, ...)), warning = whandler, messa`
+    ## <environment: 0x560a32e2deb0>
     ## 
     ## $`FUN(X, ...)`
-    ## <environment: 0x5636895a8588>
+    ## <environment: 0x560a32ef71c0>
     ## 
     ## $`<text>#2: g(as.character(x))`
-    ## <environment: 0x5636895a82e8>
+    ## <environment: 0x560a32ef7000>
     ## 
     ## attr(,"error.message")
     ## [1] "non-numeric argument to binary operator\n\n"
@@ -123,7 +123,7 @@ ret <- bettermc::mclapply(1:4, function(i) {
     ## 48: stop(i) at <text>#2
     ## 47: FUN(X, ...)
     ## 46: withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = mhandler, 
-    ##         condition = chandler) at etry.R#34
+    ##         condition = chandler) at etry.R#38
     ## 45: withCallingHandlers(expr, error = function(e) {
     ...
 
@@ -186,6 +186,46 @@ ret <- bettermc::mclapply(1:4, f)
 Similarly, other conditions can also be re-signaled in the parent
 process.
 
+### Reproducible Seeding
+
+By default, `bettermc` reproducibly seeds all function calls:
+
+``` r
+set.seed(538)
+a <- bettermc::mclapply(1:4, function(i) runif(1), mc.cores = 3)
+set.seed(538)
+b <- bettermc::mclapply(1:4, function(i) runif(1), mc.cores = 1)
+a
+```
+
+    ## [[1]]
+    ## [1] 0.02134061
+    ## 
+    ## [[2]]
+    ## [1] 0.7456995
+    ## 
+    ## [[3]]
+    ## [1] 0.4223595
+    ## 
+    ## [[4]]
+    ## [1] 0.6265811
+
+``` r
+stopifnot(identical(a, b))
+```
+
+Compare with `parallel`:
+
+``` r
+set.seed(594)
+a <- parallel::mclapply(1:4, function(i) runif(1), mc.cores = 3)
+set.seed(594)
+b <- parallel::mclapply(1:4, function(i) runif(1), mc.cores = 3)
+stopifnot(identical(a, b))
+```
+
+    ## Error: identical(a, b) is not TRUE
+
 ### POSIX Shared Memory
 
 Many types of objects can be returned from the child processes using
@@ -213,11 +253,11 @@ microbenchmark::microbenchmark(
 
     ## Unit: milliseconds
     ##       expr       min        lq      mean    median        uq       max neval
-    ##  bettermc1  320.0410  350.3665  369.2490  370.6599  384.5358  414.8268    10
-    ##  bettermc2  603.9296  649.0813  676.4485  682.4288  708.9244  742.5663    10
-    ##  bettermc3 1116.2009 1153.9187 1277.9979 1190.5501 1270.3877 1802.2334    10
-    ##  bettermc4 1200.3030 1313.3324 1591.2849 1544.1784 1852.0342 2004.0813    10
-    ##   parallel 1113.0253 1416.4247 1565.6660 1528.5397 1748.7820 2040.8899    10
+    ##  bettermc1  291.2821  316.8932  321.9454  323.3619  328.6756  342.8789    10
+    ##  bettermc2  572.2924  592.4564  640.5121  604.8961  613.9334 1002.5760    10
+    ##  bettermc3 1047.5861 1069.7110 1120.4034 1102.8991 1153.8105 1311.9648    10
+    ##  bettermc4  930.2634 1168.5147 1428.0177 1385.1090 1616.7027 2294.9783    10
+    ##   parallel  961.2617 1020.4822 1275.7263 1211.5029 1315.1250 2113.2437    10
 
 In examples `bettermc1` and `bettermc2`, the child processes place the
 columns of the return value `X` in shared memory. The object which needs
@@ -293,9 +333,9 @@ microbenchmark::microbenchmark(
 ```
 
     ## Unit: seconds
-    ##       expr      min       lq     mean   median       uq      max neval
-    ##  bettermc1  6.93144  6.93144  6.93144  6.93144  6.93144  6.93144     1
-    ##   parallel 45.57482 45.57482 45.57482 45.57482 45.57482 45.57482     1
+    ##       expr       min        lq      mean    median        uq       max neval
+    ##  bettermc1  4.972368  4.972368  4.972368  4.972368  4.972368  4.972368     1
+    ##   parallel 29.875469 29.875469 29.875469 29.875469 29.875469 29.875469     1
 
 By default, `bettermc` replaces character vectors with objects of type
 `char_map` before returning them to the parent process:
@@ -306,8 +346,8 @@ str(X_comp)
 ```
 
     ## List of 3
-    ##  $ chars     : chr [1:999894] "0.0312489692587405" "0.962695338996127" "0.943859854247421" "0.460910116788" ...
-    ##  $ idx       : int [1:30000000] 375489 375490 375491 375492 375493 375494 375495 375496 375497 375498 ...
+    ##  $ chars     : chr [1:999882] "0.132475900929421" "0.843039438594133" "0.448472284711897" "0.656558645190671" ...
+    ##  $ idx       : int [1:30000000] 394557 394558 394559 394560 394561 394562 394563 394564 394565 394566 ...
     ##  $ attributes: NULL
     ##  - attr(*, "class")= chr "char_map"
 
@@ -338,8 +378,8 @@ microbenchmark::microbenchmark(
 
     ## Unit: seconds
     ##      expr      min       lq     mean   median       uq      max neval
-    ##  char_map 1.980569 2.173327 2.534882 2.366085 2.812039 3.257993     3
-    ##     match 6.226585 7.020396 7.404433 7.814208 7.993357 8.172507     3
+    ##  char_map 1.751307 1.768194 1.774945 1.785081 1.786765 1.788449     3
+    ##     match 4.025391 4.055226 4.107061 4.085061 4.147896 4.210731     3
 
 ### Retries
 
@@ -352,7 +392,7 @@ be processed. This is also why we need `mc.force.fork` in the following
 example:
 
 ``` r
-set.seed(123)
+set.seed(456)
 res <-
   bettermc::mclapply(1:20, function(i) {
     r <- runif(1)
@@ -369,17 +409,53 @@ res <-
 
     ## error(s) occured during mclapply; first original message:
     ## 
-    ## Error: 3
+    ## Error: 5
     ## 
     ## Traceback:
     ## 46: stop(i) at <text>#5
     ## 45: FUN(X, ...)
     ## 44: withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = mhandler, 
-    ##         condition = chandler) at etry.R#34
+    ##         condition = chandler) at etry.R#38
     ## 43: withCallingHandlers(expr, error = function(e) {
     ...
 
     ## at least one scheduled core did not return results; maybe it was killed (by the Linux Out of Memory Killer ?) or there was a fatal error in the forked process(es)
+
+    ## error(s) occured during mclapply; first original message:
+    ## 
+    ## Error: 20
+    ## 
+    ## Traceback:
+    ## 46: stop(i) at <text>#5
+    ## 45: FUN(X, ...)
+    ## 44: withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = mhandler, 
+    ##         condition = chandler) at etry.R#38
+    ## 43: withCallingHandlers(expr, error = function(e) {
+    ...
+
+    ## error(s) occured during mclapply; first original message:
+    ## 
+    ## Error: 2
+    ## 
+    ## Traceback:
+    ## 46: stop(i) at <text>#5
+    ## 45: FUN(X, ...)
+    ## 44: withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = mhandler, 
+    ##         condition = chandler) at etry.R#38
+    ## 43: withCallingHandlers(expr, error = function(e) {
+    ...
+
+    ## error(s) occured during mclapply; first original message:
+    ## 
+    ## Error: 12
+    ## 
+    ## Traceback:
+    ## 46: stop(i) at <text>#5
+    ## 45: FUN(X, ...)
+    ## 44: withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = mhandler, 
+    ##         condition = chandler) at etry.R#38
+    ## 43: withCallingHandlers(expr, error = function(e) {
+    ...
 
 ``` r
 stopifnot(identical(res, as.list(1:20)))
@@ -431,13 +507,13 @@ res <-
 
     ## error(s) occured during mclapply; first original message:
     ## 
-    ## Error: 9
+    ## Error: 3
     ## 
     ## Traceback:
     ## 51: stop(i) at <text>#5
     ## 50: FUN(X, ...)
     ## 49: withCallingHandlers(list(FUN(X, ...)), warning = whandler, message = mhandler, 
-    ##         condition = chandler) at etry.R#34
+    ##         condition = chandler) at etry.R#38
     ## 48: withCallingHandlers(expr, error = function(e) {
     ...
 
