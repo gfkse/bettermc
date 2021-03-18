@@ -1,5 +1,7 @@
 # bettermc
 
+[![CRAN
+status](https://www.r-pkg.org/badges/version/bettermc)](https://cran.r-project.org/package=bettermc)
 [![R build
 status](https://github.com/gfkse/bettermc/workflows/R-CMD-check/badge.svg)](https://github.com/gfkse/bettermc/actions?workflow=R-CMD-check)
 [![codecov](https://codecov.io/gh/gfkse/bettermc/branch/master/graph/badge.svg?token=FYYM156COF)](https://codecov.io/gh/gfkse/bettermc)
