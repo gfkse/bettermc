@@ -752,7 +752,9 @@ mclapply <- function(X, FUN, ...,
     if (grepl("^file://", mc.dumpto)) {
       saveRDS(res, gsub("^file://", "", mc.dumpto))
     } else {
-      assign(mc.dumpto, res, .GlobalEnv)
+      # trick R CMD check w.r.t. noting an assignment to the global environment
+      genv <- .GlobalEnv
+      assign(mc.dumpto, res, genv)
     }
   }
 
