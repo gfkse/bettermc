@@ -76,7 +76,7 @@ Here is a short overview on its main features ...
 ### Progress Bar
 ![progress bar](progress.png)
 
-### Traceback and Crashdumps
+### Error Handling, Tracebacks and Crashdumps
 By default, crashdumps and full tracebacks are generated on errors in child processes:
 ```{r traceback, error=TRUE, output.lines=10}
 g <- function(x) x + 1
@@ -90,6 +90,31 @@ last.dump <- readRDS("last.dump.rds")
 # in an interactive session use debugger() instead of print() for actual debugging
 print(attr(last.dump[[1L]], "dump.frames"))
 ```
+
+As shown in the example above, `bettermc` by default fails if there are errors in child processes.
+This behavior can be changed to merely warn about both fatal and non-fatal error:
+```{r allow_errors, output.lines=10}
+ret <- bettermc::mclapply(1:4, function(i) {
+  if (i == 1L)
+    stop(i)
+  else if (i == 4L)
+    system(paste0("kill ", Sys.getpid()))
+  NULL
+}, mc.allow.fatal = TRUE, mc.allow.error = TRUE, mc.preschedule = FALSE)
+```
+
+Also in this case, full tracebacks and crash dumps are available:
+```{r crashdump_allow_errors}
+stopifnot(inherits(ret[[1]], "try-error"))
+names(attributes(ret[[1L]]))
+```
+
+Additionally, results affected by fatal errors are clearly indicated and can be differentiated from legitimate `NULL` values:
+```{r fatal-error}
+lapply(ret, class)
+```
+
+You can use `mc.allow.fatal = NULL` to instead return `NULL` on fatal errors as does `parallel::mclapply`.
 
 ### Output, Messages and Warnings
 In contrast to `parallel::mclapply`, neither output nor messages nor warnings from the child processes are lost.
@@ -223,4 +248,19 @@ res <-
   }, mc.retry = -3, mc.cores = 10, mc.force.fork = TRUE)
 
 stopifnot(identical(res, as.list(1:20)))
+```
+
+If there are still errors after the retries, we regularly fail:
+```{r retry_failing, error=TRUE, output.lines=10}
+set.seed(123)
+res <-
+  bettermc::mclapply(1:20, function(i) {
+    r <- runif(1)
+    if (r < 0.25)
+      system(paste0("kill ", Sys.getpid()))
+    else if (r < 0.5)
+      stop(i)
+    else
+      i
+  }, mc.retry = 1, mc.cores = 10, mc.force.fork = TRUE)
 ```
