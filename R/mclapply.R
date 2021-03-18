@@ -103,11 +103,13 @@
 #'  \code{/bmc_ppid_timestamp_idx_cntr} (e.g.
 #'  \code{/bmc_21479_1601366973201_16_10}), with \describe{\item{ppid}{the
 #'  process id of the parent process.}\item{timestamp}{the time at which
-#'  \code{mclapply} was invoked (in milliseconds since epoch).}\item{idx}{the
-#'  index of the current element of \code{X} (1-based).}\item{cntr}{an internal
-#'  counter (1-based) referring to all the objects created due to
-#'  \code{mc.share.vectors} for the current value of \code{X}; a value of
-#'  \code{0} is used for the object created due to \code{mc.shm.ipc}.}}
+#'  \code{mclapply} was invoked (in milliseconds since epoch; on macOS: seconds
+#'  since epoch, due to its 31-character limit w.r.t. POSIX
+#'  names).}\item{idx}{the index of the current element of \code{X}
+#'  (1-based).}\item{cntr}{an internal counter (1-based) referring to all the
+#'  objects created due to \code{mc.share.vectors} for the current value of
+#'  \code{X}; a value of \code{0} is used for the object created due to
+#'  \code{mc.shm.ipc}.}}
 #'
 #'  \code{bettermc::mclapply} does not err if copying data to shared memory
 #'  fails. It will rather only print a message and return results the usual way.
@@ -242,7 +244,16 @@ mclapply <- function(X, FUN, ...,
     # ppid is used to name POSIX shared memory objects and semaphores
     ppid <- Sys.getpid()
 
-    timestamp <- as.character(round(as.numeric(Sys.time()) * 1000))
+    if (OSTYPE == "macos") {
+      # limit the length of the shm_prefix because macOS allows POSIX names only
+      # up to 31 chars
+      timestamp <- as.character(round(as.numeric(Sys.time())))
+    } else if (OSTYPE %in% c("linux", "solaris")) {
+      timestamp <- as.character(round(as.numeric(Sys.time()) * 1000))
+    } else {
+      stop("unexpected value for OSTYPE: ", OSTYPE)
+    }
+
     shm_prefix <- sprintf("/bmc_%d_%s_", ppid, timestamp)
 
     # unlink shared memory objects in case of errors
@@ -273,9 +284,10 @@ mclapply <- function(X, FUN, ...,
     # - catch messages signaled by tick and cat them to stderr via pipe (to
     #   make it work in RStudio)
     if (mc.progress) {
-      sem <- sem_open(paste0("/bettermc_", ppid), create = TRUE)
+      sem_name <- sprintf("/bmc_%d_%s", ppid, timestamp)
+      sem <- sem_open(sem_name, create = TRUE)
       on.exit(sem_close(sem), add = TRUE)
-      on.exit(sem_unlink(paste0("/bettermc_", ppid)), add = TRUE)
+      on.exit(sem_unlink(sem_name), add = TRUE)
 
       progress_job <- parallel::mcparallel({
         stderr_pipe <- pipe("cat >&2")
@@ -305,7 +317,7 @@ mclapply <- function(X, FUN, ...,
 
     # this file is touched on first error in a child
     if (mc.fail.early) {
-      error_file <- tempfile("bettermc_error_")
+      error_file <- tempfile("bmc_error_")
       on.exit(unlink(error_file), add = TRUE)
     }
 

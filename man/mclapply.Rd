@@ -206,11 +206,13 @@ performance. \item display a progress bar.}
  \code{/bmc_ppid_timestamp_idx_cntr} (e.g.
  \code{/bmc_21479_1601366973201_16_10}), with \describe{\item{ppid}{the
  process id of the parent process.}\item{timestamp}{the time at which
- \code{mclapply} was invoked (in milliseconds since epoch).}\item{idx}{the
- index of the current element of \code{X} (1-based).}\item{cntr}{an internal
- counter (1-based) referring to all the objects created due to
- \code{mc.share.vectors} for the current value of \code{X}; a value of
- \code{0} is used for the object created due to \code{mc.shm.ipc}.}}
+ \code{mclapply} was invoked (in milliseconds since epoch; on macOS: seconds
+ since epoch, due to its 31-character limit w.r.t. POSIX
+ names).}\item{idx}{the index of the current element of \code{X}
+ (1-based).}\item{cntr}{an internal counter (1-based) referring to all the
+ objects created due to \code{mc.share.vectors} for the current value of
+ \code{X}; a value of \code{0} is used for the object created due to
+ \code{mc.shm.ipc}.}}
 
  \code{bettermc::mclapply} does not err if copying data to shared memory
  fails. It will rather only print a message and return results the usual way.
