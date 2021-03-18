@@ -33,13 +33,15 @@ etry <- function(expr, silent = FALSE,
   DP <- list()
   tryCatch(
     withCallingHandlers(expr, error = function(e) {
-      # 3L -> ensure that the actual error is on top of the traceback
+      # 4L -> ensure that the actual error is on top of the traceback
+      # do.call -> trick R CMD check in R versions where .traceback does not
+      # have a max.lines-argument
       if ("max.lines" %in% names(formals(.traceback))) {
-        TB <<- .traceback(3L, max.lines = max.lines)
+        TB <<- do.call(.traceback, list(x = 4L, max.lines = max.lines))
       } else {
         opt_bak <- options(deparse.max.lines = max.lines)
         on.exit(options(opt_bak))
-        TB <<- .traceback(3L)
+        TB <<- do.call(.traceback, list(x = 4L))
       }
 
       if (dump.frames != "no") {
