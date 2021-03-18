@@ -11,3 +11,14 @@ test_that("semaphores work", {
   sem_unlink(sem_name)
   expect_error(sem_unlink(sem_name))
 })
+
+test_that("semaphores are interruptible", {
+  sem_name <- gen_posix_name()
+  s <- sem_open(sem_name, TRUE)
+  ppid <- Sys.getpid()
+  job <- parallel::mcparallel({Sys.sleep(1); system(paste0("kill -", tools::SIGINT, " ", ppid))})
+  expect_true(tryCatch(sem_wait(s), interrupt = function(i) TRUE))
+  expect_identical(parallel::mccollect(job)[[1]], 0L)
+  sem_close(s)
+  sem_unlink(sem_name)
+})

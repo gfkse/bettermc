@@ -42,8 +42,11 @@ SEXP semaphorev_wait(SEXP sid, SEXP undo) {
   sops.sem_op = -1;
   sops.sem_flg = asLogical(undo) ? SEM_UNDO : 0;
 
-  if (semop(semid, &sops, 1) == -1) {
-    error("'semop' failed with '%s'", strerror(errno));
+  while (semop(semid, &sops, 1) == -1) {
+    if (errno != EINTR) {
+      error("'semop' failed with '%s'", strerror(errno));
+    }
+    R_CheckUserInterrupt();
   }
 
   return R_NilValue;
