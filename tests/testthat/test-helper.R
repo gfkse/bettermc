@@ -1,4 +1,4 @@
-e <- new.env()
+e <- new.env(parent = emptyenv())
 assign(" ", NULL, e)
 assign("5", 5, e)
 assign("a\nb", "ab", e)

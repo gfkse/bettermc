@@ -11,6 +11,9 @@ is.uneval.promise <- function(name, env) {
 }
 
 is.missing.arg <- function(name, env) {
+  penv <- parent.env(env)
+  on.exit(parent.env(env) <- penv)
+  parent.env(env) <- baseenv()
   eval(parse(text = paste0("base::missing(`", name, "`)")), env)
 }
 
