@@ -331,3 +331,33 @@ test_that("... is not forcefully evaluated", {
   expect_identical(bettermc::mclapply(1:2, function(i, j) i, j = stop("eee")),
                    list(1L, 2L))
 })
+
+test_that("mclapply works in edge cases", {
+  expect_identical(bettermc::mclapply(NULL, I),
+                   parallel::mclapply(NULL, I))
+
+  expect_identical(bettermc::mclapply(numeric(), I, some_arg = 123),
+                   parallel::mclapply(numeric(), I, some_arg = 123))
+
+  expect_identical(bettermc::mclapply(list(), I),
+                   parallel::mclapply(list(), I))
+
+  nl <- list()
+  names(nl) <- character()
+  expect_identical(bettermc::mclapply(nl, I),
+                   parallel::mclapply(nl, I))
+
+  expect_identical(bettermc::mclapply(list(NULL), function(x) x),
+                   parallel::mclapply(list(NULL), function(x) x))
+
+  expect_identical(bettermc::mclapply(list(NULL, NULL), function(x) x),
+                   parallel::mclapply(list(NULL, NULL), function(x) x))
+
+  al <- structure(list(), some_attr = 951)
+  expect_identical(bettermc::mclapply(al, function(x) x),
+                   parallel::mclapply(al, function(x) x))
+
+  al <- structure(list(character()), some_attr = 951)
+  expect_identical(bettermc::mclapply(al, function(x) x),
+                   parallel::mclapply(al, function(x) x))
+})

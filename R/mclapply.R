@@ -185,6 +185,12 @@ mclapply <- function(X, FUN, ...,
   if (!is.vector(X) || is.object(X))
     X <- as.list(X)
 
+  if (!length(X)) {
+    res <- list()
+    names(res) <- names(X)
+    return(res)
+  }
+
   checkmate::assert_flag(mc.allow.fatal, null.ok = TRUE)
   checkmate::assert_flag(mc.allow.error)
   checkmate::assert_int(mc.retry)
