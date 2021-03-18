@@ -8,8 +8,8 @@ status](https://github.com/gfkse/bettermc/workflows/R-CMD-check/badge.svg)](http
 [![rchk](https://github.com/gfkse/bettermc/workflows/rchk/badge.svg)](https://github.com/gfkse/bettermc/actions?workflow=rchk)
 
 The `bettermc` package provides a wrapper around the
-`parallel::mclapply` function for better performance, error handling and
-UX.
+`parallel::mclapply` function for better performance, error handling,
+seeding and UX.
 
 ## Installation of the Development Version
 
