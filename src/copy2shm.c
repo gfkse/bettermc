@@ -245,7 +245,7 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
 
   allocator_data* data = malloc(sizeof(allocator_data));
   if (data == NULL) {
-    error("'malloc' failed with to allocate %zu bytes", sizeof(allocator_data));
+    error("'malloc' failed to allocate %zu bytes", sizeof(allocator_data));
   }
 
   data->ptr = sptr;

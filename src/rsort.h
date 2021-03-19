@@ -51,29 +51,29 @@ struct uniqueN_data_UINT64_UINT64 {
 };
 
 
-void rsort_UINT32_UINT32(struct uniqueN_data_UINT32_UINT32 *restrict x,
-                         uint64_t n,
-                         uint64_t hist_rank[restrict][n_bucket],
-                         uint64_t hist_value[restrict][n_bucket],
-                         int order);
+int rsort_UINT32_UINT32(struct uniqueN_data_UINT32_UINT32 *restrict x,
+                        uint64_t n,
+                        uint64_t hist_rank[restrict][n_bucket],
+                        uint64_t hist_value[restrict][n_bucket],
+                        int order);
 
-void rsort_UINT32_UINT64(struct uniqueN_data_UINT32_UINT64 *restrict x,
-                         uint64_t n,
-                         uint64_t hist_rank[restrict][n_bucket],
-                         uint64_t hist_value[restrict][n_bucket],
-                         int order);
+int rsort_UINT32_UINT64(struct uniqueN_data_UINT32_UINT64 *restrict x,
+                        uint64_t n,
+                        uint64_t hist_rank[restrict][n_bucket],
+                        uint64_t hist_value[restrict][n_bucket],
+                        int order);
 
-void rsort_UINT64_UINT32(struct uniqueN_data_UINT64_UINT32 *restrict x,
-                         uint64_t n,
-                         uint64_t hist_rank[restrict][n_bucket],
-                         uint64_t hist_value[restrict][n_bucket],
-                         int order);
+int rsort_UINT64_UINT32(struct uniqueN_data_UINT64_UINT32 *restrict x,
+                        uint64_t n,
+                        uint64_t hist_rank[restrict][n_bucket],
+                        uint64_t hist_value[restrict][n_bucket],
+                        int order);
 
-void rsort_UINT64_UINT64(struct uniqueN_data_UINT64_UINT64 *restrict x,
-                         uint64_t n,
-                         uint64_t hist_rank[restrict][n_bucket],
-                         uint64_t hist_value[restrict][n_bucket],
-                         int order);
+int rsort_UINT64_UINT64(struct uniqueN_data_UINT64_UINT64 *restrict x,
+                        uint64_t n,
+                        uint64_t hist_rank[restrict][n_bucket],
+                        uint64_t hist_value[restrict][n_bucket],
+                        int order);
 
 
 #define rsort(x, n, hist_rank, hist_value, order) _Generic((x),               \

@@ -3,12 +3,15 @@
 #include <string.h>
 
 #define MAKE_RSORT(TYPE)                                                      \
-void rsort_##TYPE(struct uniqueN_data_##TYPE *restrict x,                     \
-                  uint64_t n, uint64_t hist_rank[restrict][n_bucket],         \
-                  uint64_t hist_value[restrict][n_bucket], int order) {       \
+int rsort_##TYPE(struct uniqueN_data_##TYPE *restrict x,                      \
+                 uint64_t n, uint64_t hist_rank[restrict][n_bucket],          \
+                 uint64_t hist_value[restrict][n_bucket], int order) {        \
                                                                               \
   struct uniqueN_data_##TYPE *s = (struct uniqueN_data_##TYPE *)              \
     malloc(n * sizeof(struct uniqueN_data_##TYPE));                           \
+  if (s == NULL) {                                                            \
+    return 1;                                                                 \
+  }                                                                           \
                                                                               \
   int pass = 0;                                                               \
   int step = 0;                                                               \
@@ -98,6 +101,8 @@ void rsort_##TYPE(struct uniqueN_data_##TYPE *restrict x,                     \
     memcpy(s, x, n * sizeof(struct uniqueN_data_##TYPE));                     \
     free(x);                                                                  \
   }                                                                           \
+                                                                              \
+  return 0;                                                                   \
 }                                                                             \
 
 #define n_pass_rank 4

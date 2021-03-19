@@ -30,12 +30,22 @@ SEXP char_map(SEXP x) {
 #if n_pass_value == 4
   struct uniqueN_data_UINT32_UINT32 * restrict uniqueN_data =
     (struct uniqueN_data_UINT32_UINT32 *) malloc(n * sizeof(struct uniqueN_data_UINT32_UINT32));
+  if (uniqueN_data == NULL) {
+    error("'malloc' failed to allocate %zu bytes", n * sizeof(struct uniqueN_data_UINT32_UINT32));
+  }
 #else
   struct uniqueN_data_UINT32_UINT64 * restrict uniqueN_data =
     (struct uniqueN_data_UINT32_UINT64 *) malloc(n * sizeof(struct uniqueN_data_UINT32_UINT64));
+  if (uniqueN_data == NULL) {
+    error("'malloc' failed to allocate %zu bytes", n * sizeof(struct uniqueN_data_UINT32_UINT64));
+  }
 #endif
 
   uint64_t (*restrict hist_value)[n_bucket] = malloc(sizeof(uint64_t[n_pass_value][n_bucket]));
+  if (hist_value == NULL) {
+    free(uniqueN_data);
+    error("'malloc' failed to allocate %zu bytes", sizeof(uint64_t[n_pass_value][n_bucket]));
+  }
   memset(hist_value, 0, n_pass_value * n_bucket * sizeof(uint64_t));
 
   for (uint32_t i = 0; i < n; i++) {
@@ -47,8 +57,16 @@ SEXP char_map(SEXP x) {
     }
   }
 
-  rsort(uniqueN_data, n, NULL, hist_value, VALUE_THEN_RANK);
+  int r = rsort(uniqueN_data, n, NULL, hist_value, VALUE_THEN_RANK);
   free(hist_value);
+  if (r != 0) {
+    free(uniqueN_data);
+#if n_pass_value == 4
+    error("'malloc' failed to allocate %zu bytes", n * sizeof(struct uniqueN_data_UINT32_UINT32));
+#else
+    error("'malloc' failed to allocate %zu bytes", n * sizeof(struct uniqueN_data_UINT32_UINT64));
+#endif
+  }
 
   map = PROTECT(allocVector(INTSXP, n));
   int *restrict map_ptr = INTEGER(map);
@@ -103,12 +121,22 @@ SEXP char_map_long(SEXP x) {
 #if n_pass_value == 4
   struct uniqueN_data_UINT64_UINT32 * restrict uniqueN_data =
     (struct uniqueN_data_UINT64_UINT32 *) malloc(n * sizeof(struct uniqueN_data_UINT64_UINT32));
+  if (uniqueN_data == NULL) {
+    error("'malloc' failed to allocate %zu bytes", n * sizeof(struct uniqueN_data_UINT64_UINT32));
+  }
 #else
   struct uniqueN_data_UINT64_UINT64 * restrict uniqueN_data =
     (struct uniqueN_data_UINT64_UINT64 *) malloc(n * sizeof(struct uniqueN_data_UINT64_UINT64));
+  if (uniqueN_data == NULL) {
+    error("'malloc' failed to allocate %zu bytes", n * sizeof(struct uniqueN_data_UINT64_UINT64));
+  }
 #endif
 
   uint64_t (*restrict hist_value)[n_bucket] = malloc(sizeof(uint64_t[n_pass_value][n_bucket]));
+  if (hist_value == NULL) {
+    free(uniqueN_data);
+    error("'malloc' failed to allocate %zu bytes", sizeof(uint64_t[n_pass_value][n_bucket]));
+  }
   memset(hist_value, 0, n_pass_value * n_bucket * sizeof(uint64_t));
 
   for (uint64_t i = 0; i < n; i++) {
@@ -120,8 +148,16 @@ SEXP char_map_long(SEXP x) {
     }
   }
 
-  rsort(uniqueN_data, n, NULL, hist_value, VALUE_THEN_RANK);
+  int r = rsort(uniqueN_data, n, NULL, hist_value, VALUE_THEN_RANK);
   free(hist_value);
+  if (r != 0) {
+    free(uniqueN_data);
+#if n_pass_value == 4
+    error("'malloc' failed to allocate %zu bytes", n * sizeof(struct uniqueN_data_UINT64_UINT32));
+#else
+    error("'malloc' failed to allocate %zu bytes", n * sizeof(struct uniqueN_data_UINT64_UINT64));
+#endif
+  }
 
   map = PROTECT(allocVector(REALSXP, n));
   double *restrict map_ptr = REAL(map);
