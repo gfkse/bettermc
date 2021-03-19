@@ -2,7 +2,6 @@
 .Rhistory
 *.o
 *.so
-inst/
 last.dump.rds
 README_cache/
 bettermc.Rcheck/

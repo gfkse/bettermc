@@ -30,6 +30,8 @@ Imports:
     checkmate,
     parallel
 RoxygenNote: 7.2
-Suggests: 
+Suggests:
     progress,
+    spelling,
     testthat (>= 2.1.0)
+Language: en-US
