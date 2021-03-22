@@ -55,8 +55,8 @@
 #'   up to the call of \code{FUN}. See \code{\link{etry}} for the other options.
 #' @param mc.dumpto where to save the result including the dumped frames if
 #'   \code{mc.dump.frames != "no" & mc.allow.error == FALSE}? Either the name of
-#'   the variable to create in the global environment or a path (prefixed with
-#'   "file://") where to save the object.
+#'   the variable to create in the environment \code{bettermc::crash_dumps} or a
+#'   path (prefixed with "file://") where to save the object.
 #' @param mc.stdout how should standard output in the child processes be
 #'   handled? "capture" captures the output in the child processes and prints it
 #'   in the parent process such that it can be captured, sinked etc. there.
@@ -752,11 +752,16 @@ mclapply <- function(X, FUN, ...,
   # list wrappers removed, named etc.
   if (error_idx && !mc.allow.error && mc.dump.frames != "no") {
     if (grepl("^file://", mc.dumpto)) {
-      saveRDS(res, gsub("^file://", "", mc.dumpto))
+      file <- gsub("^file://", "", mc.dumpto)
+      saveRDS(res, file)
+      file <- normalizePath(file)
+      message("crash dump saved to file'", file, "'; for debugging the first error, use:\n'{last.dump <- readRDS(\"",
+              file, "\"); utils::debugger(attr(last.dump[[", error_idx, "]], \"dump.frames\"))}'")
     } else {
-      # trick R CMD check w.r.t. noting an assignment to the global environment
-      genv <- .GlobalEnv
-      assign(mc.dumpto, res, genv)
+      assign(mc.dumpto, res, crash_dumps)
+      message("crash dump saved to object '", mc.dumpto, "' in environment 'bettermc::crash_dumps';",
+              " for debugging the first error, use:\n'utils::debugger(attr(bettermc::crash_dumps[[\"",
+              mc.dumpto, "\"]][[", error_idx, "]], \"dump.frames\"))'")
     }
   }
 
@@ -812,3 +817,8 @@ mclapply <- function(X, FUN, ...,
   res
 }
 
+#' @rdname mclapply
+#' @usage crash_dumps  # environment with crash dumps created by mclapply (cf. mc.dumpto)
+#' @format
+#' @export
+crash_dumps <- new.env()
