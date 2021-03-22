@@ -132,8 +132,14 @@ E <- list2env(X)
 E[["E"]] <- E
 test_that("returning recursive environments using shared memory works", {
   expect_equal(
-    bettermc::mclapply(1:2, function(i) E, mc.share.vectors = TRUE, mc.share.altreps = "yes", mc.progress = TRUE),
+    bettermc::mclapply(1:2, function(i) E, mc.share.vectors = TRUE, mc.share.altreps = "yes"),
     parallel::mclapply(1:2, function(i) E)
+  )
+})
+
+test_that("mc.progress works", {
+  expect_silent(
+    bettermc::mclapply(1:2, function(i) i, mc.progress = TRUE, mc.cores = 1)
   )
 })
 
