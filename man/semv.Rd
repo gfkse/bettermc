@@ -25,6 +25,11 @@ semv_unlink(sid)
 undone on process termination. This feature is probably the main reason to
 prefer System V semaphores to POSIX ones.}
 }
+\value{
+For \code{semv_open}, an object of class "semv", which is an integer
+  referring to the System V semaphore. All other functions return \code{NULL}
+  invisibly and are called for their side effects.
+}
 \description{
 Mimic the POSIX semaphore API with System V semaphores.
 }

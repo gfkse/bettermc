@@ -24,6 +24,10 @@ ALTREP? The default "if_allocated" only does so if the regular
 representation was already created. This was chosen as the default because
 in this case is is the regular representation which would be serialized.}
 }
+\value{
+\code{l}, but with character vectors replaced by objects of class
+  \code{\link{char_map}}.
+}
 \description{
 Recursively Call \code{\link{char_map}}/\code{\link{map2char}} on a List
 }
@@ -36,6 +40,6 @@ The object returned by \code{compress_chars} might be an invalid S3
 \section{Lifecycle}{
 
   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:
-  alt='[Experimental]'}}}{\strong{[Experimental]}}
+   alt='[Experimental]'}}}{\strong{[Experimental]}}
 }
 

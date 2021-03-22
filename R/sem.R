@@ -60,29 +60,39 @@ sem_unlink <- function(name) {
 #'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:
 #'   alt='[Experimental]'}}}{\strong{[Experimental]}}
 #'
+#' @return For \code{semv_open}, an object of class "semv", which is an integer
+#'   referring to the System V semaphore. All other functions return \code{NULL}
+#'   invisibly and are called for their side effects.
+#'
 #' @name semv
 NULL
 
 #' @rdname semv
 #' @export
 semv_open <- function(value = 0) {
-  .Call(C_semaphorev_open, value)
+  structure(
+    .Call(C_semaphorev_open, value),
+    class = "semv"
+  )
 }
 
 #' @rdname semv
 #' @export
 semv_post <- function(sid, undo = TRUE) {
+  stopifnot(inherits(sid, "semv"))
   invisible(.Call(C_semaphorev_post, sid, undo))
 }
 
 #' @rdname semv
 #' @export
 semv_wait <- function(sid, undo = TRUE) {
+  stopifnot(inherits(sid, "semv"))
   invisible(.Call(C_semaphorev_wait, sid, undo))
 }
 
 #' @rdname semv
 #' @export
 semv_unlink <- function(sid) {
+  stopifnot(inherits(sid, "semv"))
   invisible(.Call(C_semaphorev_unlink, sid))
 }

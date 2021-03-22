@@ -194,6 +194,9 @@ value for \code{mc.cores} never drops to less than 2 as a result of
 \item{mc.progress}{should a progress bar be printed to stderr of the parent
 process (package \code{progress} must be installed)?}
 }
+\value{
+A list of the same length as X and named by X.
+}
 \description{
 This wrapper for \code{\link[parallel:mclapply]{parallel::mclapply}} adds the
 following features: \itemize{ \item reliably detect if a child process failed

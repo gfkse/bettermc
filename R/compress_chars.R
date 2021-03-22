@@ -15,7 +15,10 @@
 #'
 #' @section Lifecycle:
 #'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:
-#'   alt='[Experimental]'}}}{\strong{[Experimental]}}
+#'    alt='[Experimental]'}}}{\strong{[Experimental]}}
+#'
+#' @return \code{l}, but with character vectors replaced by objects of class
+#'   \code{\link{char_map}}.
 #'
 #' @export
 compress_chars <- function(l, limit = 0L,
