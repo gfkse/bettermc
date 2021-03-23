@@ -11,7 +11,7 @@ Authors@R:
              role = "cph"),
       person(given = "R Core team",
              role = "ctb",
-             comment = "'etry' and its print method borrow a lot from base R"))
+             comment = "'etry()' and its print method borrow a lot from base R"))
 Description: Drop-in replacement for 'parallel::mclapply()' adding e.g.
     tracebacks, crash dumps, retries, condition handling, improved seeding,
     progress bars and faster inter process communication. Some of the internal
