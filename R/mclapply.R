@@ -728,9 +728,9 @@ mclapply <- function(X, FUN, ...,
 
     if (mc.cores == 1L || (length(X) == 1L && !mc.force.fork)) {
       # parallel::mclapply won't fork
-      mc.share.vectors <- FALSE
+      mc.share.vectors <- Inf
       mc.shm.ipc <- FALSE
-      mc.compress.chars <- FALSE
+      mc.compress.chars <- Inf
     }
 
     res[X_seq] <- core(tries_left)
