@@ -33,7 +33,7 @@
 #'   \code{mc.allow.fatal} can also be \code{NULL}. In this case \code{NULL} is
 #'   returned, which corresponds to the behavior of
 #'   \code{\link[parallel:mclapply]{parallel::mclapply}}.
-#' @param mc.allow.error should non-fatal errors in child processes make
+#' @param mc.allow.error should non-fatal errors in \code{FUN} make
 #'   \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
 #'   (\code{TRUE})? In the latter case, errors are stored as class
 #'   \code{c("etry-error", "try-error")} objects, which contain full tracebacks
@@ -49,34 +49,41 @@
 #'   to too many parallel processes, e.g. the Linux Out Of Memory Killer
 #'   sacrificing some of the child processes.
 #' @param mc.fail.early should we try to fail fast after encountering the first
-#'   (non-fatal) error in a child process? Such errors will be recorded as
-#'   objects of classes \code{c("fail-early-error", "try-error")}.
+#'   (non-fatal) error in \code{FUN}? Such errors will be recorded as objects of
+#'   classes \code{c("fail-early-error", "try-error")}.
 #' @param mc.dump.frames should we \code{\link[utils]{dump.frames}} on non-fatal
-#'   errors in child processes. The default "partial" omits the frames (roughly)
-#'   up to the call of \code{FUN}. See \code{\link{etry}} for the other options.
+#'   errors in \code{FUN}. The default "partial" omits the frames (roughly) up
+#'   to the call of \code{FUN}. See \code{\link{etry}} for the other options.
 #' @param mc.dumpto where to save the result including the dumped frames if
 #'   \code{mc.dump.frames != "no" & mc.allow.error == FALSE}? Either the name of
 #'   the variable to create in the environment \code{bettermc::crash_dumps} or a
 #'   path (prefixed with "file://") where to save the object.
-#' @param mc.stdout how should standard output in the child processes be
-#'   handled? "capture" captures the output in the child processes and prints it
-#'   in the parent process such that it can be captured, sinked etc. there.
-#'   "output" directly forwards the output to stdout of the parent; it cannot be
-#'   captured, sinked etc. there.
+#' @param mc.stdout how should standard output from \code{FUN} be handled?
+#'   "capture" captures the output (in the child processes) and prints it in the
+#'   parent process after \emph{all} calls of \code{FUN} of the current try (cf.
+#'   \code{mc.retry}), such that it can be captured, sinked etc. there. "output"
+#'   \emph{immediately} forwards the output to stdout of the parent; it cannot
+#'   be captured, sinked etc. there. For consistency, all of this also applies
+#'   if \code{FUN} is called directly from the main process, e.g. because
+#'   \code{mc.cores = 1}.
 #' @param mc.warnings,mc.messages,mc.conditions how should warnings, messages
-#'   and other conditions in the child processes be handled? "signal" records
-#'   all warnings/messages/conditions in the child processes and signals them in
-#'   the master process. "stop" converts warnings (only) into non-fatal errors
-#'   in the child processes directly. "output" directly forwards the messages to
-#'   stderr of the parent; no condition is signaled in the parent process nor is
-#'   the output capturable/sinkable. "ignore" means that the conditions are not
-#'   forwarded in any way to the parent process. Options prefixed with "m"
-#'   additionally try to invoke the "muffleWarning"/"muffleMessage" restart in
-#'   the child process.
+#'   and other conditions signaled by \code{FUN} be handled? "signal" records
+#'   all warnings/messages/conditions (in the child processes) and signals them
+#'   in the master process after \emph{all} calls of \code{FUN} of the current
+#'   try (cf. \code{mc.retry}). "stop" converts warnings (only) into non-fatal
+#'   errors in the child processes directly. "output" \emph{immediately}
+#'   forwards the messages to stderr of the parent; no condition is signaled in
+#'   the parent process nor is the output capturable/sinkable. "ignore" means
+#'   that the conditions are not forwarded in any way to the parent process.
+#'   Options prefixed with "m" additionally try to invoke the
+#'   "muffleWarning"/"muffleMessage" restart in the child process. Note that, if
+#'   \code{FUN} is called directly from the main process, conditions might be
+#'   signaled twice in the main process, depending on these arguments.
 #' @param mc.compress.chars should character vectors be compressed using
-#'   \code{\link{char_map}}? Can also be the minimum length of character vectors
-#'   for which to enable compression. This generally increases performance
-#'   because (de)serialization of character vectors is particularly expensive.
+#'   \code{\link{char_map}} before returning them from the child process? Can
+#'   also be the minimum length of character vectors for which to enable
+#'   compression. This generally increases performance because (de)serialization
+#'   of character vectors is particularly expensive.
 #' @param mc.compress.altreps should a character vector be compressed if it is
 #'   an ALTREP? The default "if_allocated" only does so if the regular
 #'   representation was already created. This was chosen as the default because
@@ -87,9 +94,7 @@
 #'   be the minimum length of vectors for which to use shared memory. This
 #'   generally increases performance because shared memory is a much faster form
 #'   of inter process communication compared to pipes and we do not need to
-#'   serialize the vectors. Note that there is no guarantee that \code{mclapply}
-#'   really uses shared memory even if requested: if \code{\link{copy2shm}}
-#'   fails, the vector will be returned the usual way.
+#'   serialize the vectors.
 #' @param mc.share.altreps should a non-character vector be returned from the
 #'   child process using POSIX shared memory if it is an ALTREP?
 #' @param mc.share.copy should the parent process use a vector placed in shared
