@@ -13,30 +13,40 @@
 #'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:
 #'   alt='[Experimental]'}}}{\strong{[Experimental]}}
 #'
+#' @return For \code{sem_open}, an object of class "sem", which is an external
+#'   pointer to the POSIX semaphore. All other functions return \code{NULL}
+#'   invisibly and are called for their side effects.
+#'
 #' @name sem
 NULL
 
 #' @rdname sem
 #' @export
 sem_open <- function(name, create = FALSE, overwrite = FALSE, value = 0) {
-  .Call(C_semaphore_open, name, create, overwrite, value)
+  structure(
+    .Call(C_semaphore_open, name, create, overwrite, value),
+    class = "sem"
+  )
 }
 
 #' @rdname sem
 #' @export
 sem_post <- function(sem) {
+  stopifnot(inherits(sem, "sem"))
   invisible(.Call(C_semaphore_post, sem))
 }
 
 #' @rdname sem
 #' @export
 sem_wait <- function(sem) {
+  stopifnot(inherits(sem, "sem"))
   invisible(.Call(C_semaphore_wait, sem))
 }
 
 #' @rdname sem
 #' @export
 sem_close <- function(sem) {
+  stopifnot(inherits(sem, "sem"))
   invisible(.Call(C_semaphore_close, sem))
 }
 

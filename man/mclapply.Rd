@@ -4,9 +4,13 @@
 \name{mclapply}
 \alias{mclapply}
 \alias{crash_dumps}
-\title{parallel::mclapply Wrapper for Better Performance, Error Handling and UX}
+\title{parallel::mclapply Wrapper for Better Performance, Error Handling, Seeding
+and UX}
 \format{
-
+\code{crash_dumps} is an initially empty environment used to store
+  the return values of \code{mclapply} (see below) including
+  \link[=etry]{crash dumps} in case of non-fatal errors and if
+  \code{mc.dump.frames != "no" & mc.allow.error == FALSE}.
 }
 \usage{
 mclapply(
@@ -202,7 +206,12 @@ value for \code{mc.cores} never drops to less than 2 as a result of
 process (package \code{progress} must be installed)?}
 }
 \value{
-A list of the same length as X and named by X.
+\code{mclapply} returns a list of the same length as X and named by
+  X. In case of fatal/non-fatal errors and depending on
+  \code{mc.allow.fatal}/\code{mc.allow.error}/\code{mc.fail.early}, some of
+  the elements might inherit from
+  "fatal-error"/\link[=etry]{"etry-error"}/"fail-early-error" and "try-error"
+  or be \code{NULL}.
 }
 \description{
 This wrapper for \code{\link[parallel:mclapply]{parallel::mclapply}} adds the

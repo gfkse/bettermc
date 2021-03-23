@@ -28,6 +28,7 @@ prescheduling
 radix
 rchk
 reproducibly
+sem
 semv
 shm
 sinked

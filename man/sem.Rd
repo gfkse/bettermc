@@ -33,6 +33,11 @@ existing semaphore with the name (\code{TRUE}) or rather fail
 
 \item{sem}{an object as returned by \code{sem_open}.}
 }
+\value{
+For \code{sem_open}, an object of class "sem", which is an external
+  pointer to the POSIX semaphore. All other functions return \code{NULL}
+  invisibly and are called for their side effects.
+}
 \description{
 Named POSIX Semaphores
 }

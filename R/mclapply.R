@@ -1,4 +1,5 @@
-#' parallel::mclapply Wrapper for Better Performance, Error Handling and UX
+#' parallel::mclapply Wrapper for Better Performance, Error Handling, Seeding
+#' and UX
 #'
 #' This wrapper for \code{\link[parallel:mclapply]{parallel::mclapply}} adds the
 #' following features: \itemize{ \item reliably detect if a child process failed
@@ -161,7 +162,12 @@
 #'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options:
 #'    alt='[Stable]'}}}{\strong{[Stable]}}
 #'
-#' @return A list of the same length as X and named by X.
+#' @return \code{mclapply} returns a list of the same length as X and named by
+#'   X. In case of fatal/non-fatal errors and depending on
+#'   \code{mc.allow.fatal}/\code{mc.allow.error}/\code{mc.fail.early}, some of
+#'   the elements might inherit from
+#'   "fatal-error"/\link[=etry]{"etry-error"}/"fail-early-error" and "try-error"
+#'   or be \code{NULL}.
 #'
 #' @importFrom utils capture.output
 #' @export
@@ -819,6 +825,9 @@ mclapply <- function(X, FUN, ...,
 
 #' @rdname mclapply
 #' @usage crash_dumps  # environment with crash dumps created by mclapply (cf. mc.dumpto)
-#' @format
+#' @format \code{crash_dumps} is an initially empty environment used to store
+#'   the return values of \code{mclapply} (see below) including
+#'   \link[=etry]{crash dumps} in case of non-fatal errors and if
+#'   \code{mc.dump.frames != "no" & mc.allow.error == FALSE}.
 #' @export
 crash_dumps <- new.env()
