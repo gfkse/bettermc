@@ -721,6 +721,13 @@ mclapply <- function(X, FUN, ...,
     }
     tries_left <- i < length(mc.cores_seq)
 
+    if (mc.cores == 1L || (length(X) == 1L && !mc.force.fork)) {
+      # parallel::mclapply won't fork
+      mc.share.vectors <- FALSE
+      mc.shm.ipc <- FALSE
+      mc.compress.chars <- FALSE
+    }
+
     res[X_seq] <- core(tries_left)
     X_seq <- which(unlist(lapply(res, function(e) is.null(e) || inherits(e, "try-error"))))
 
