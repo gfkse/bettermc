@@ -1,7 +1,8 @@
 vectors2shm <- function(l, limit = 2L,
                         share_altreps = c("no", "yes", "if_allocated"),
                         copy = TRUE,
-                        name_prefix) {
+                        name_prefix,
+                        class = character()) {
   share_altreps <- match.arg(share_altreps)
 
   cntr <- 1L
@@ -53,6 +54,7 @@ vectors2shm <- function(l, limit = 2L,
         name <- paste0(name_prefix, cntr)
         shm_obj <- copy2shm(e, name, copy = ifelse(is_char_map, FALSE, copy))
         if (inherits(shm_obj, "shm_obj")) {
+          class(shm_obj) <- c(class, class(shm_obj))
           cntr <<- cntr + 1L
           l[[i]] <- shm_obj
         } else {
@@ -79,7 +81,7 @@ vectors2shm <- function(l, limit = 2L,
 }
 
 
-shm2vectors <- function(l) {
+shm2vectors <- function(l, class = character()) {
   shm2vectors_core <- function(l) {
     if (is.environment(l)) return(l)
     if (isS4(l)) return(l)
@@ -119,7 +121,7 @@ shm2vectors <- function(l) {
     # - cleanup will no longer find object 4 and hence stop
     for (i in rev(idx)) {
       e <- l[[i]]
-      if (inherits(e, "shm_obj")) {
+      if (all(inherits(e, c(class, "shm_obj"), which = TRUE))) {
         l[[i]] <- allocate_from_shm(e)
       } else if (is.list(e) || is.environment(e)) {
         l[[i]] <- shm2vectors_core(e)
@@ -131,7 +133,8 @@ shm2vectors <- function(l) {
     l
   }
 
-  if ((!is.list(l) && !is.environment(l)) || inherits(l, "shm_obj")) {
+  if ((!is.list(l) && !is.environment(l)) ||
+      all(inherits(l, c(class, "shm_obj"), which = TRUE))) {
     shm2vectors_core(list(l))[[1L]]
   } else {
     shm2vectors_core(l)

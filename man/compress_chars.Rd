@@ -8,10 +8,11 @@
 compress_chars(
   l,
   limit = 0L,
-  compress_altreps = c("if_allocated", "yes", "no")
+  compress_altreps = c("if_allocated", "yes", "no"),
+  class = character()
 )
 
-uncompress_chars(l)
+uncompress_chars(l, class = character())
 }
 \arguments{
 \item{l}{an object, typically a list}
@@ -23,13 +24,23 @@ uncompress_chars(l)
 ALTREP? The default "if_allocated" only does so if the regular
 representation was already created. This was chosen as the default because
 in this case is is the regular representation which would be serialized.}
+
+\item{class}{additional classes to set on the \code{\link{char_map}}-objects
+created by \code{compress_chars}. For \code{uncompress_chars}, only call
+\code{\link{map2char}} on those \code{\link{char_map}}-objects which
+additionally inherit from all these classes.}
 }
 \value{
-\code{l}, but with character vectors replaced by objects of class
-  \code{\link{char_map}}.
+For \code{compress_chars}, \code{l}, but with character vectors
+  replaced by objects of class \code{\link{char_map}}. For
+  \code{uncompress_chars}, \code{l}, but with all
+  \code{\link{char_map}}-objects, which also inherit from all classes given
+  in \code{class}, replaced by the original character vectors.
 }
 \description{
-Recursively Call \code{\link{char_map}}/\code{\link{map2char}} on a List
+These originally internal functions are exported because they are also useful
+for reducing the size of e.g. a data frame before storing it to disk using
+\code{\link{saveRDS}}. This also improves the (de)serialization speed.
 }
 \note{
 The object returned by \code{compress_chars} might be an invalid S3

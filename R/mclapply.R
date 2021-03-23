@@ -511,14 +511,16 @@ mclapply <- function(X, FUN, ...,
 
       if (!is.infinite(mc.compress.chars)) {
         res <- compress_chars(res, limit = mc.compress.chars,
-                              compress_altreps = mc.compress.altreps)
+                              compress_altreps = mc.compress.altreps,
+                              class = "bmc_internal_char_map")
       }
 
       if (!is.infinite(mc.share.vectors)) {
         res <- vectors2shm(res, limit = mc.share.vectors,
                            share_altreps = mc.share.altreps,
                            copy = mc.share.copy,
-                           name_prefix = shm_prefix)
+                           name_prefix = shm_prefix,
+                           class = "bmc_internal_shm_obj")
       }
 
       if (mc.shm.ipc) {
@@ -617,11 +619,11 @@ mclapply <- function(X, FUN, ...,
     }
 
     if (!is.infinite(mc.share.vectors)) {
-      res <- shm2vectors(res)
+      res <- shm2vectors(res, class = "bmc_internal_shm_obj")
     }
 
     if (!is.infinite(mc.compress.chars)) {
-      res <- uncompress_chars(res)
+      res <- uncompress_chars(res, class = "bmc_internal_char_map")
     }
 
     if (mc.stdout == "capture") {

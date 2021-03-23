@@ -40,15 +40,6 @@ for (idx in sample.int(nrow(args))) {
 
     X_exp <- X_test
 
-    if (args[idx, "mc.share.vectors"]) {
-      X_exp$shm1 <- 1:10
-      X_exp$shm2 <- 1:10
-    }
-
-    if (args[idx, "mc.compress.chars"]) {
-      X_exp$chmap <- letters
-    }
-
     if (args[idx, "warning"]) {
       expect_warning(
         expect_identical(do.call(bettermc::mclapply, c(X = list(seq_along(X_test)),
@@ -72,10 +63,8 @@ for (idx in sample.int(nrow(args))) {
       )
     }
 
-    if (!args[idx, "mc.share.vectors"]) {
-      bettermc:::unlink_all_shm(shm_prefix_copy1, idx)
-      bettermc:::unlink_all_shm(shm_prefix_direct1, idx)
-    }
+    bettermc:::unlink_all_shm(shm_prefix_copy1, idx)
+    bettermc:::unlink_all_shm(shm_prefix_direct1, idx)
 
     shm_prefix_copy2 <- gen_posix_name("bmc_c2")
     shm_prefix_direct2 <- gen_posix_name("bmc_d2")
@@ -86,15 +75,6 @@ for (idx in sample.int(nrow(args))) {
                 shm2 = list(copy2shm(1:10, paste0(shm_prefix_direct2, idx), copy = FALSE)))
 
     X_exp <- X_test
-
-    if (args[idx, "mc.share.vectors"]) {
-      X_exp$shm1 <- 1:10
-      X_exp$shm2 <- 1:10
-    }
-
-    if (args[idx, "mc.compress.chars"]) {
-      X_exp$chmap <- letters
-    }
 
     if (args[idx, "warning"]) {
       expect_warning(
@@ -119,10 +99,8 @@ for (idx in sample.int(nrow(args))) {
       )
     }
 
-    if (!args[idx, "mc.share.vectors"]) {
-      bettermc:::unlink_all_shm(shm_prefix_copy2, idx)
-      bettermc:::unlink_all_shm(shm_prefix_direct2, idx)
-    }
+    bettermc:::unlink_all_shm(shm_prefix_copy2, idx)
+    bettermc:::unlink_all_shm(shm_prefix_direct2, idx)
 
   })
 }
