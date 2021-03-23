@@ -1,8 +1,7 @@
 Package: bettermc
-Title: 'parallel::mc*' Wrappers for Better Performance, Error Handling, Seeding
-    and UX
-Version: 1.0.0
-Date: 2021-03-18
+Title: Enhanced Fork-Based Parallelization
+Version: 1.0.1
+Date: 2021-03-23
 Authors@R: 
     c(person(given = "Andreas",
             family = "Kersting",
@@ -13,12 +12,12 @@ Authors@R:
       person(given = "R Core team",
              role = "ctb",
              comment = "'etry' and its print method borrow a lot from base R"))
-Description: Drop-in replacement for 'parallel::mclapply' adding e.g.
+Description: Drop-in replacement for 'parallel::mclapply()' adding e.g.
     tracebacks, crash dumps, retries, condition handling, improved seeding,
     progress bars and faster inter process communication. Some of the internal
-    functions are also exported for other use: 'etry' (extended try),
-    'copy2shm/allocate_from_shm' (copy to and allocate from POSIX shared
-    memory), 'char_map/map2char' (split a character vector into its unique
+    functions are also exported for other use: 'etry()' (extended try),
+    'copy2shm()/allocate_from_shm()' (copy to and allocate from POSIX shared
+    memory), 'char_map/map2char()' (split a character vector into its unique
     elements and a mapping on these) and various semaphore related functions.
 OS_type: unix
 License: MIT + file LICENSE

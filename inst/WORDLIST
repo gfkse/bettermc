@@ -4,6 +4,7 @@ Crashdumps
 Hugepage
 Lifecycle
 MiB
+Parallelization
 Tracebacks
 UX
 allocator
@@ -19,7 +20,6 @@ idx
 implementational
 integerish
 macOS
-mc
 mclapply
 muffleMessage
 muffleWarning

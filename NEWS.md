@@ -1,2 +1,2 @@
-# bettermc [v1.0.0]
+# bettermc [v1.0.1]
 * initial CRAN release
