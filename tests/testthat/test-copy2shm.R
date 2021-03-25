@@ -42,7 +42,7 @@ for (copy in c(TRUE, FALSE)) {
     expect_error(allocate_from_shm(o), "unsupported SEXP type")
 
     o <- copy2shm(1:10, shm_name, copy = copy)
-    o$size <- 5000  # > 4096 (typical page size)
+    o$size <- 1024 * 1024 + 1  # must be larger than page size on macOS
     expect_error(allocate_from_shm(o), "wrong size")
   })
 
