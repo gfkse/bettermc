@@ -176,16 +176,22 @@ typedef struct allocator_data {
 
 void* shm_alloc(R_allocator_t *allocator, size_t size) {
   allocator_data *data = allocator->data;
-  if (size != data->size) {
+  if (size != data->size) {  // this should never happen (did X2VEC change in R?)
+    munmap(data->ptr, data->size);
+
+    size_t expected_size = data->size;
+    free(data);
+
     error("'shm_alloc' was asked for %zu bytes but expected %zu bytes.",
-          size, data->size);
+          size, expected_size);
   }
   return data->ptr;
 }
 
 void shm_free(R_allocator_t *allocator, void *addr) {
   allocator_data *data = allocator->data;
-  if (addr != data->ptr) {
+  if (addr != data->ptr) {  // this should never happen (bug in R?)
+    // something is very fishy here; don't even try to cleanup
     error("'addr' not equal to 'data->ptr' in 'shm_free'");
   }
 
@@ -274,13 +280,15 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
     expected_size = BYTE2VEC((R_xlen_t) asReal(length)) * sizeof(VECREC);
     break;
   default:
+    shm_free(&allocator, sptr);
     error("unsupported SEXP type: %s", type2char(asInteger(type)));
   }
 
   size_t offset = sizeof(R_allocator_t) + sizeof(SEXPREC_ALIGN);
   if (data->size - offset != expected_size) {
+    shm_free(&allocator, sptr);
     error("'alloc_from_shm' expected a shared memory object with %zu bytes but it has %zu bytes.",
-          expected_size + offset, data->size);
+          expected_size + offset, (size_t) asReal(size));
   }
 
 
