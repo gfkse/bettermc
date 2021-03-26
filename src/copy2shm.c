@@ -265,19 +265,24 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
 
 
   size_t expected_size;
+  size_t dataptr_size;
   switch(asInteger(type)) {
   case LGLSXP:
   case INTSXP:
     expected_size = INT2VEC((R_xlen_t) asReal(length)) * sizeof(VECREC);
+    dataptr_size = asReal(length) * sizeof(int);
     break;
   case REALSXP:
     expected_size = FLOAT2VEC((R_xlen_t) asReal(length)) * sizeof(VECREC);
+    dataptr_size = asReal(length) * sizeof(double);
     break;
   case CPLXSXP:
     expected_size = COMPLEX2VEC((R_xlen_t) asReal(length)) * sizeof(VECREC);
+    dataptr_size = asReal(length) * sizeof(Rcomplex);
     break;
   case RAWSXP:
     expected_size = BYTE2VEC((R_xlen_t) asReal(length)) * sizeof(VECREC);
+    dataptr_size = asReal(length);
     break;
   default:
     shm_free(&allocator, sptr);
@@ -298,9 +303,7 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
   } else {
     ret = PROTECT(allocVector(asInteger(type), asReal(length)));
 
-    //if (LENGTH(ret) >= 1) {
-      memcpy(DATAPTR(ret), (char *) sptr + offset, data->size - offset);
-    //}
+    memcpy(DATAPTR(ret), (char *) sptr + offset, dataptr_size);
 
     shm_free(&allocator, sptr);
   }
