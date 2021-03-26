@@ -232,13 +232,16 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
   }
 #endif
 
-  // MAP_PRIVATE is crucial here; using MAP_SHARED would make unit test
-  // "changes to vectors allocate(d)_from_shm are private" fail
   void *sptr;
   if (asLogical(copy)) {
+    // here we use MAP_SHARED because we only copy from the mmaped region to the
+    // regularly allocated R vector and macOS does not support MAP_PRIVATE
     sptr = mmap(NULL, asReal(size),
-                PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+                PROT_READ, MAP_SHARED, fd, 0);
   } else {
+    // MAP_PRIVATE is crucial here; using MAP_SHARED would make unit test
+    // "changes to vectors allocate(d)_from_shm are private" fail;
+    // the caller ensures that we do not end up in this branch on macOS
     sptr = mmap(NULL, asReal(size),
                 PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
   }
