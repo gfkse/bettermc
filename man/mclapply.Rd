@@ -30,7 +30,7 @@ mclapply(
   mc.fail.early = !(mc.allow.error || mc.retry != 0L),
   mc.dump.frames = c("partial", "full", "full_global", "no"),
   mc.dumpto = ifelse(interactive(), "last.dump", "file://last.dump.rds"),
-  mc.stdout = c("capture", "output"),
+  mc.stdout = c("capture", "output", "ignore"),
   mc.warnings = c("m_signal", "signal", "m_output", "output", "m_ignore", "ignore",
     "stop"),
   mc.messages = c("m_signal", "signal", "m_output", "output", "m_ignore", "ignore"),
@@ -152,9 +152,10 @@ path (prefixed with "file://") where to save the object.}
 parent process after \emph{all} calls of \code{FUN} of the current try (cf.
 \code{mc.retry}), such that it can be captured, sinked etc. there. "output"
 \emph{immediately} forwards the output to stdout of the parent; it cannot
-be captured, sinked etc. there. For consistency, all of this also applies
-if \code{FUN} is called directly from the main process, e.g. because
-\code{mc.cores = 1}.}
+be captured, sinked etc. there. "ignore" means that the output is not
+forwarded in any way to the parent process. For consistency, all of this
+also applies if \code{FUN} is called directly from the main process, e.g.
+because \code{mc.cores = 1}.}
 
 \item{mc.warnings, mc.messages, mc.conditions}{how should warnings, messages
 and other conditions signaled by \code{FUN} be handled? "signal" records

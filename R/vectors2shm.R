@@ -187,15 +187,17 @@ shm2vectors <- function(l, class = character()) {
 #'   will be returned.
 #'
 #' @examples
-#' x <- runif(100)
-#' obj <- copy2shm(x, "/random")
-#' if (inherits(obj, "shm_obj")) {
-#'   # copy2shm succeeded
-#'   y <- allocate_from_shm(obj)
-#'   stopifnot(identical(x, y))
-#' } else {
-#'   # copy2shm failed -> print the error message
-#'   print(obj)
+#' if (tolower(Sys.info()[["sysname"]]) != "windows") {
+#'   x <- runif(100)
+#'   obj <- copy2shm(x, "/random")
+#'   if (inherits(obj, "shm_obj")) {
+#'     # copy2shm succeeded
+#'     y <- allocate_from_shm(obj)
+#'     stopifnot(identical(x, y))
+#'   } else {
+#'     # copy2shm failed -> print the error message
+#'     print(obj)
+#'   }
 #' }
 #'
 #' @section Lifecycle:
@@ -210,7 +212,7 @@ copy2shm <- function(x, name, overwrite = FALSE, copy = TRUE) {
   if (!isFALSE(overwrite)) {
     if (OSTYPE == "macos") {
       stop("On macOS, 'overwrite' must be FALSE.")
-    } else if (!OSTYPE %in% c("linux", "solaris")) {
+    } else if (!OSTYPE %in% c("linux", "solaris", "windows")) {
       stop("invalid value for OSTYPE: ", OSTYPE)
     }
   }
@@ -249,7 +251,7 @@ allocate_from_shm <- function(obj, copy = obj$copy) {
   # if copy = TRUE we can (and do) create a shared mapping, hence:
   if (OSTYPE == "macos") {
     copy <- TRUE
-  } else if (!OSTYPE %in% c("linux", "solaris")) {
+  } else if (!OSTYPE %in% c("linux", "solaris", "windows")) {
     stop("invalid value for OSTYPE: ", OSTYPE)
   }
 

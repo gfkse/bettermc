@@ -1,4 +1,5 @@
 test_that("mc.retry works", {
+  skip_on_os("windows")
   set.seed(123)
   res <- suppressMessages(
     bettermc::mclapply(1:20, function(i) {

@@ -35,8 +35,8 @@ for (idx in sample.int(nrow(args))) {
   test_that(paste0(idx, ": ", paste0(names(args), ": ", args[idx, ], collapse = " - ")), {
     X_test <- c(X, list(X), lapply(X, asS4),
                 chmap = list(char_map(letters)),
-                shm1 = list(copy2shm(1:10, paste0(shm_prefix_copy1, idx))),
-                shm2 = list(copy2shm(1:10, paste0(shm_prefix_direct1, idx), copy = FALSE)))
+                shm1 = if (bettermc:::OSTYPE != "windows") list(copy2shm(1:10, paste0(shm_prefix_copy1, idx))),
+                shm2 = if (bettermc:::OSTYPE != "windows") list(copy2shm(1:10, paste0(shm_prefix_direct1, idx), copy = FALSE)))
 
     X_exp <- X_test
 
@@ -63,16 +63,16 @@ for (idx in sample.int(nrow(args))) {
       )
     }
 
-    bettermc:::unlink_all_shm(shm_prefix_copy1, idx)
-    bettermc:::unlink_all_shm(shm_prefix_direct1, idx)
+    if (bettermc:::OSTYPE != "windows") bettermc:::unlink_all_shm(shm_prefix_copy1, idx)
+    if (bettermc:::OSTYPE != "windows") bettermc:::unlink_all_shm(shm_prefix_direct1, idx)
 
     shm_prefix_copy2 <- gen_posix_name("bmc_c2")
     shm_prefix_direct2 <- gen_posix_name("bmc_d2")
 
     X_test <- c(X, list(X), lapply(X, asS4),
                 chmap = list(char_map(letters)),
-                shm1 = list(copy2shm(1:10, paste0(shm_prefix_copy2, idx))),
-                shm2 = list(copy2shm(1:10, paste0(shm_prefix_direct2, idx), copy = FALSE)))
+                shm1 = if (bettermc:::OSTYPE != "windows") list(copy2shm(1:10, paste0(shm_prefix_copy2, idx))),
+                shm2 = if (bettermc:::OSTYPE != "windows") list(copy2shm(1:10, paste0(shm_prefix_direct2, idx), copy = FALSE)))
 
     X_exp <- X_test
 
@@ -99,8 +99,8 @@ for (idx in sample.int(nrow(args))) {
       )
     }
 
-    bettermc:::unlink_all_shm(shm_prefix_copy2, idx)
-    bettermc:::unlink_all_shm(shm_prefix_direct2, idx)
+    if (bettermc:::OSTYPE != "windows") bettermc:::unlink_all_shm(shm_prefix_copy2, idx)
+    if (bettermc:::OSTYPE != "windows") bettermc:::unlink_all_shm(shm_prefix_direct2, idx)
 
   })
 }
@@ -152,6 +152,7 @@ test_that("mclapply handles non-fatal error correctly", {
 })
 
 test_that("mclapply handles fatal error correctly", {
+  skip_on_os("windows")
   expect_error(bettermc::mclapply(1:2, function(i) system(sprintf("kill %d", Sys.getpid())), mc.shm.ipc = TRUE),
                "at least one scheduled core did not return results", fixed = TRUE)
   expect_error(bettermc::mclapply(1:2, function(i) system(sprintf("kill %d", Sys.getpid())), mc.shm.ipc = FALSE),
@@ -180,6 +181,7 @@ test_that("mc.fail.early works", {
 })
 
 test_that("joint fatal and non-fatal errors are handled correctly", {
+  skip_on_os("windows")
   expect_error(bettermc::mclapply(1:2, function(i) {
     if (i == 1) {
       system(paste0("kill ", Sys.getpid()))
@@ -229,6 +231,7 @@ test_that("joint fatal and non-fatal errors are handled correctly", {
 })
 
 test_that("mclapply handles warnings correctly", {
+  skip_on_os("windows")
   expect_warning(bettermc::mclapply(1:2, function(i) warning(i)),
                "1: 1", fixed = TRUE)
   expect_error(bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "stop"),
@@ -264,6 +267,7 @@ test_that("mclapply handles warnings correctly", {
 })
 
 test_that("mclapply handles messages correctly", {
+  skip_on_os("windows")
   expect_message(bettermc::mclapply(1:2, function(i) message(i)),
                  "1: 1", fixed = TRUE)
   expect_silent(bettermc::mclapply(1:2, function(i) message(i), mc.messages = "ignore"))
@@ -297,6 +301,7 @@ test_that("mclapply handles messages correctly", {
 })
 
 test_that("mclapply handles conditions correctly", {
+  skip_on_os("windows")
   expect_silent(
     withCallingHandlers(bettermc::mclapply(1:2, function(i) signalCondition(simpleCondition(i)),
                                            mc.conditions = "ignore", mc.stdout = "output"),

@@ -63,9 +63,10 @@
 #'   parent process after \emph{all} calls of \code{FUN} of the current try (cf.
 #'   \code{mc.retry}), such that it can be captured, sinked etc. there. "output"
 #'   \emph{immediately} forwards the output to stdout of the parent; it cannot
-#'   be captured, sinked etc. there. For consistency, all of this also applies
-#'   if \code{FUN} is called directly from the main process, e.g. because
-#'   \code{mc.cores = 1}.
+#'   be captured, sinked etc. there. "ignore" means that the output is not
+#'   forwarded in any way to the parent process. For consistency, all of this
+#'   also applies if \code{FUN} is called directly from the main process, e.g.
+#'   because \code{mc.cores = 1}.
 #' @param mc.warnings,mc.messages,mc.conditions how should warnings, messages
 #'   and other conditions signaled by \code{FUN} be handled? "signal" records
 #'   all warnings/messages/conditions (in the child processes) and signals them
@@ -187,7 +188,7 @@ mclapply <- function(X, FUN, ...,
                      mc.dump.frames = c("partial", "full", "full_global", "no"),
                      mc.dumpto = ifelse(interactive(), "last.dump",
                                         "file://last.dump.rds"),
-                     mc.stdout = c("capture", "output"),
+                     mc.stdout = c("capture", "output", "ignore"),
                      mc.warnings = c("m_signal", "signal", "m_output", "output",
                                      "m_ignore", "ignore", "stop"),
                      mc.messages = c("m_signal", "signal", "m_output", "output",
@@ -201,10 +202,6 @@ mclapply <- function(X, FUN, ...,
                      mc.shm.ipc = getOption("bettermc.use_shm", TRUE),
                      mc.force.fork = FALSE,
                      mc.progress = interactive()) {
-
-  # run parallel:::.onLoad(), which sets option mc.cores to env var MC_CORES;
-  # do so before evaluating the mc.cores-promise
-  requireNamespace("parallel")
 
   # as in parallel::mclapply
   if (!is.vector(X) || is.object(X))
@@ -270,6 +267,17 @@ mclapply <- function(X, FUN, ...,
     warning("'mc.preschedule' must be false if 'affinity.list' is used")
   }
 
+  if (OSTYPE == "windows") {
+    mc.cores <- 1L
+    mc.share.vectors <- Inf
+    mc.shm.ipc <- FALSE
+    mc.force.fork <- FALSE
+    mc.progress <- FALSE
+    if (mc.stdout == "output") mc.stdout <- "ignore"
+    if (mc.warnings == "output") mc.warnings <- "ignore"
+    if (mc.messages == "output") mc.messages <- "ignore"
+  }
+
   FUN <- force(FUN)
 
   root_stop <- make_root_stop()
@@ -299,6 +307,8 @@ mclapply <- function(X, FUN, ...,
       timestamp <- as.character(round(as.numeric(Sys.time())))
     } else if (OSTYPE %in% c("linux", "solaris")) {
       timestamp <- as.character(round(as.numeric(Sys.time()) * 1000))
+    } else if (OSTYPE == "windows") {
+      timestamp <- "NOT_USED"
     } else {
       stop("unexpected value for OSTYPE: ", OSTYPE)
     }
@@ -405,6 +415,9 @@ mclapply <- function(X, FUN, ...,
       } else if (OSTYPE %in% c("macos", "solaris")) {
         stdout_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&1", mc.X.idx))
         stderr_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&2", mc.X.idx))
+      } else if (OSTYPE == "windows") {
+        stdout_pipe <- NULL
+        stderr_pipe <- NULL
       } else {
         root_stop("unexpected value for OSTYPE: ", OSTYPE)
       }
@@ -416,8 +429,10 @@ mclapply <- function(X, FUN, ...,
         on.exit(sink(), add = TRUE)
       }
 
-      on.exit(close(stdout_pipe), add = TRUE)
-      on.exit(close(stderr_pipe), add = TRUE)
+      if (OSTYPE != "windows") {
+        on.exit(close(stdout_pipe), add = TRUE)
+        on.exit(close(stderr_pipe), add = TRUE)
+      }
 
       shm_prefix <- paste0(shm_prefix, mc.X.idx, "_")
 
@@ -491,14 +506,7 @@ mclapply <- function(X, FUN, ...,
       # evaluate FUN and handle errors (etry), warnings and messages;
       # res is always a one-element list except in case of error when it is an
       # etry-error-object
-      if (mc.stdout == "output") {
-        res <- etry(withCallingHandlers(list(FUN(X, ...)),
-                                        warning = whandler,
-                                        message = mhandler,
-                                        condition = chandler),
-                    silent = TRUE,
-                    dump.frames = if (tries_left) "no" else mc.dump.frames)
-      } else {
+      if (mc.stdout == "capture") {
         output <- capture.output(
           res <- etry(withCallingHandlers(list(FUN(X, ...)),
                                           warning = whandler,
@@ -508,6 +516,13 @@ mclapply <- function(X, FUN, ...,
                       dump.frames = if (tries_left) "no" else mc.dump.frames)
         )
         if (length(output)) attr(res, "bettermc_output") <- output
+      } else {
+        res <- etry(withCallingHandlers(list(FUN(X, ...)),
+                                        warning = whandler,
+                                        message = mhandler,
+                                        condition = chandler),
+                    silent = TRUE,
+                    dump.frames = if (tries_left) "no" else mc.dump.frames)
       }
 
 

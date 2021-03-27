@@ -1,0 +1,22 @@
+#include "bettermc.h"
+
+SEXP copy2shm(SEXP x, SEXP n, SEXP overwrite, SEXP huge_threshold) {
+  error("Not supported on Windows.");
+}
+
+SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
+                       SEXP attributes, SEXP copy) {
+  error("Not supported on Windows.");
+}
+
+SEXP is_altrep(SEXP x) {
+  return ScalarLogical(ALTREP(x));
+}
+
+SEXP is_allocated(SEXP x) {
+  return ScalarLogical(DATAPTR_OR_NULL(x) != 0);
+}
+
+SEXP unlink_all_shm(SEXP prefix, SEXP start) {
+  error("Not supported on Windows.");
+}

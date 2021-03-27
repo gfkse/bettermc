@@ -1,4 +1,5 @@
 test_that("semaphores work", {
+  skip_on_os("windows")
   sem_name <- gen_posix_name()
   expect_error(sem_open(sem_name, create = FALSE))
   s <- sem_open(sem_name, create = TRUE, value = 1)
@@ -13,6 +14,7 @@ test_that("semaphores work", {
 })
 
 test_that("semaphores are interruptible", {
+  skip_on_os("windows")
   sem_name <- gen_posix_name()
   s <- sem_open(sem_name, TRUE)
   ppid <- Sys.getpid()

@@ -1,0 +1,21 @@
+#include "bettermc.h"
+
+SEXP semaphore_open(SEXP n, SEXP create, SEXP overwrite, SEXP value) {
+  error("Not supported on Windows.");
+}
+
+SEXP semaphore_post(SEXP sem) {
+  error("Not supported on Windows.");
+}
+
+SEXP semaphore_wait(SEXP sem) {
+  error("Not supported on Windows.");
+}
+
+SEXP semaphore_close(SEXP sem) {
+  error("Not supported on Windows.");
+}
+
+SEXP semaphore_unlink(SEXP n) {
+  error("Not supported on Windows.");
+}

@@ -1,5 +1,6 @@
 for (copy in c(TRUE, FALSE)) {
   test_that("copy2shm & allocate_from_shm produce correct results", {
+    skip_on_os("windows")
     shm_name <- gen_posix_name()
     expect_identical(numeric(), allocate_from_shm(copy2shm(numeric(), shm_name, copy = copy)))
     expect_identical(integer(), allocate_from_shm(copy2shm(integer(), shm_name, copy = copy)))
@@ -25,6 +26,7 @@ for (copy in c(TRUE, FALSE)) {
   })
 
   test_that("allocate_from_shm handles a corrupt shm_obj gracefully", {
+    skip_on_os("windows")
     shm_name <- gen_posix_name()
 
     o <- copy2shm(numeric(), shm_name, copy = copy)
@@ -47,6 +49,7 @@ for (copy in c(TRUE, FALSE)) {
   })
 
   test_that("allocate_from_shm checks exact size of shm obj on Linux", {
+    skip_on_os("windows")
     skip_on_os("mac")
 
     o <- copy2shm(1:10, gen_posix_name(), copy = copy)
@@ -55,6 +58,7 @@ for (copy in c(TRUE, FALSE)) {
   })
 
   test_that("changes to vectors allocate(d)_from_shm are private", {
+    skip_on_os("windows")
     o <- copy2shm(1:10, name = gen_posix_name(), copy = copy)
     x <- allocate_from_shm(o)
     parallel::mclapply(1:2, function(i) x[i] <<- 99L)
@@ -62,6 +66,7 @@ for (copy in c(TRUE, FALSE)) {
   })
 
   test_that("overwrite in allocate_from_shm works", {
+    skip_on_os("windows")
     skip_on_os("mac")
 
     shm_name <- gen_posix_name()
@@ -72,6 +77,7 @@ for (copy in c(TRUE, FALSE)) {
 }
 
 test_that("MADV_HUGEPAGE does not cause issues", {
+  skip_on_os("windows")
   opt_bak <- options(bettermc.hugepage_limit = 0L)
   expect_identical(allocate_from_shm(copy2shm(1:10, gen_posix_name())), 1:10)
   options(opt_bak)

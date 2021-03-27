@@ -1,4 +1,5 @@
 test_that("system v semaphores work", {
+  skip_on_os("windows")
   sid <- semv_open(1)
   semv_wait(sid)
   semv_post(sid)
@@ -12,6 +13,7 @@ test_that("system v semaphores work", {
 })
 
 test_that("undo works for system v semaphores", {
+  skip_on_os("windows")
   sid <- semv_open(1)
   job <- parallel::mcparallel({semv_wait(sid); semv_wait(sid); TRUE})
   expect_null(parallel::mccollect(job, wait = FALSE, timeout = 1))  # i.e. blocking
@@ -21,6 +23,7 @@ test_that("undo works for system v semaphores", {
 })
 
 test_that("system v semaphores are interruptible", {
+  skip_on_os("windows")
   sid <- semv_open(0)
   ppid <- Sys.getpid()
   job <- parallel::mcparallel({Sys.sleep(1); system(paste0("kill -", tools::SIGINT, " ", ppid))})
