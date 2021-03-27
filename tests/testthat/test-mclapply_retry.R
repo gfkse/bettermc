@@ -22,7 +22,20 @@ test_that("mc.retry works", {
         stop(i)
       else
         i
-    }, mc.retry = 50, mc.preschedule = FALSE, mc.cores = 2, mc.force.fork = TRUE)
+    }, mc.retry = -50, mc.preschedule = FALSE, mc.cores = 2, mc.force.fork = TRUE, affinity.list = as.list(rep(1, 20)))
+  )
+  expect_identical(res, as.list(1:20))
+
+  res <- suppressMessages(
+    bettermc::mclapply(1:20, function(i) {
+      r <- runif(1)
+      if (r < 0.25)
+        system(paste0("kill ", Sys.getpid()))
+      else if (r < 0.5)
+        stop(i)
+      else
+        i
+    }, mc.retry = 50, mc.preschedule = FALSE, mc.cores = 2, mc.force.fork = TRUE, affinity.list = rep(1, 20))
   )
   expect_identical(res, as.list(1:20))
 

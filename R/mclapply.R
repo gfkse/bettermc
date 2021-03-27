@@ -549,10 +549,11 @@ mclapply <- function(X, FUN, ...,
 
     # apply wrapper ----
     # parallel-apply wrapper to seq_along(X)
-    X_seq <- if (mc.force.fork && length(X) == 1L) {
-      c(0L, 1L)
+    if (mc.force.fork && length(X) == 1L) {
+      X_seq <- c(0L, 1L)
+      affinity.list <- c(affinity.list, affinity.list)
     } else {
-      seq_along(X)
+      X_seq <- seq_along(X)
     }
     withCallingHandlers(
       res <- parallel::mclapply(

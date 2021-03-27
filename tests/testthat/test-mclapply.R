@@ -351,3 +351,10 @@ test_that("mclapply works in edge cases", {
   expect_identical(bettermc::mclapply(al, function(x) x),
                    parallel::mclapply(al, function(x) x))
 })
+
+test_that("mc.force.fork correctly adjusts affinity.list", {
+  expect_silent(bettermc::mclapply(1, function(i) i, mc.preschedule = FALSE, mc.force.fork = TRUE, affinity.list = NULL))
+  expect_silent(bettermc::mclapply(1, function(i) i, mc.preschedule = FALSE, mc.force.fork = TRUE, affinity.list = 1))
+  expect_silent(bettermc::mclapply(1, function(i) i, mc.preschedule = FALSE, mc.force.fork = TRUE, affinity.list = list(1)))
+  expect_silent(bettermc::mclapply(1, function(i) i, mc.preschedule = FALSE, mc.force.fork = TRUE, affinity.list = list(c(1, 2))))
+})
