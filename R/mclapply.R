@@ -202,6 +202,10 @@ mclapply <- function(X, FUN, ...,
                      mc.force.fork = FALSE,
                      mc.progress = interactive()) {
 
+  # run parallel:::.onLoad(), which sets option mc.cores to env var MC_CORES;
+  # do so before evaluating the mc.cores-promise
+  requireNamespace("parallel")
+
   # as in parallel::mclapply
   if (!is.vector(X) || is.object(X))
     X <- as.list(X)
