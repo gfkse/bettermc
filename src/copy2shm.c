@@ -1,5 +1,8 @@
 #define _GNU_SOURCE
 
+// for MAP_ANON on macOS
+#define _DARWIN_C_SOURCE
+
 #include "bettermc.h"
 #include <R_ext/Rallocators.h>
 #include <R_ext/Altrep.h>
@@ -13,6 +16,11 @@
 #include <errno.h>
 #include <signal.h>
 #include <setjmp.h>
+
+// for macOS, which does not have MAP_ANONYMOUS
+#ifndef MAP_ANONYMOUS
+#define MAP_ANONYMOUS MAP_ANON
+#endif
 
 // https://github.com/wch/r-source/blob/tags/R-3-6-3/src/include/Defn.h#L409-L422
 typedef struct {
@@ -232,41 +240,6 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
   }
 #endif
 
-  void *sptr;
-  if (asLogical(copy)) {
-    // here we use MAP_SHARED because we only copy from the mmaped region to the
-    // regularly allocated R vector and macOS does not support MAP_PRIVATE
-    sptr = mmap(NULL, asReal(size),
-                PROT_READ, MAP_SHARED, fd, 0);
-  } else {
-    // MAP_PRIVATE is crucial here; using MAP_SHARED would make unit test
-    // "changes to vectors allocate(d)_from_shm are private" fail;
-    // the caller ensures that we do not end up in this branch on macOS
-    sptr = mmap(NULL, asReal(size),
-                PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-  }
-
-  close(fd);
-
-  if (sptr == MAP_FAILED) {
-    error("'mmap' failed with '%s'\n", strerror(errno));
-  }
-
-  allocator_data* data = malloc(sizeof(allocator_data));
-  if (data == NULL) {
-    error("'malloc' failed to allocate %zu bytes", sizeof(allocator_data));
-  }
-
-  data->ptr = sptr;
-  data->size = asReal(size);
-
-  R_allocator_t allocator;
-  allocator.mem_alloc = &shm_alloc;
-  allocator.mem_free = &shm_free;
-  allocator.res = NULL;
-  allocator.data = data;
-
-
   size_t expected_size;
   size_t dataptr_size;
   switch(asInteger(type)) {
@@ -288,13 +261,13 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
     dataptr_size = asReal(length);
     break;
   default:
-    shm_free(&allocator, sptr);
+    close(fd);
     error("unsupported SEXP type: %s", type2char(asInteger(type)));
   }
 
   size_t offset = sizeof(R_allocator_t) + sizeof(SEXPREC_ALIGN);
-  if (data->size - offset != expected_size) {
-    shm_free(&allocator, sptr);
+  if (asReal(size) - offset != expected_size) {
+    close(fd);
     error("'alloc_from_shm' expected a shared memory object with %zu bytes but it has %zu bytes.",
           expected_size + offset, (size_t) asReal(size));
   }
@@ -302,14 +275,69 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
 
   SEXP ret;
   if (!asLogical(copy) && asReal(length) >= 2) {
+    // the following two-step approach is motivated by
+    // https://r.789695.n4.nabble.com/custom-allocators-Valgrind-and-uninitialized-memory-tp4768304p4768350.html
+
+    // STEP 1: allocate the result vector in an anonymous mapping
+    allocator_data* data = malloc(sizeof(allocator_data));
+    if (data == NULL) {
+      close(fd);
+      error("'malloc' failed to allocate %zu bytes", sizeof(allocator_data));
+    }
+
+    data->ptr = mmap(NULL, asReal(size), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (data->ptr == MAP_FAILED) {
+      free(data);
+      close(fd);
+      error("'mmap' failed with '%s'\n", strerror(errno));
+    }
+    data->size = asReal(size);
+
+    R_allocator_t allocator;
+    allocator.mem_alloc = &shm_alloc;
+    allocator.mem_free = &shm_free;
+    allocator.res = NULL;
+    allocator.data = data;
+
     ret = PROTECT(allocVector3(asInteger(type), asReal(length), &allocator));
+
+
+    // STEP 2: mmap the POSIX shared memory object over the results vector, but keeping the header
+
+    // backup header
+    char header[offset];
+    memcpy(header, data->ptr, offset);
+
+    // MAP_PRIVATE is crucial here; using MAP_SHARED would make unit test
+    // "changes to vectors allocate(d)_from_shm are private" fail;
+    // the caller ensures that we do not end up in this branch on macOS
+    void *sptr = mmap(data->ptr, asReal(size), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_FIXED, fd, 0);
+    if (sptr == MAP_FAILED) {
+      close(fd);
+      shm_free(&allocator, data->ptr);
+      UNPROTECT(1);
+      error("'mmap' failed with '%s'\n", strerror(errno));
+    }
+
+    // restore header
+    memcpy(data->ptr, header, offset);
   } else {
+    // here we use MAP_SHARED because we only copy from the mmaped region to the
+    // regularly allocated R vector and macOS does not support MAP_PRIVATE
+    void *sptr = mmap(NULL, asReal(size), PROT_READ, MAP_SHARED, fd, 0);
+    if (sptr == MAP_FAILED) {
+      close(fd);
+      error("'mmap' failed with '%s'\n", strerror(errno));
+    }
+
     ret = PROTECT(allocVector(asInteger(type), asReal(length)));
 
     memcpy(DATAPTR(ret), (char *) sptr + offset, dataptr_size);
 
-    shm_free(&allocator, sptr);
+    munmap(sptr, asReal(size));
   }
+
+  close(fd);
 
   ATTRIB(ret) = PROTECT(shallow_duplicate(attributes));
   SEXP A = getAttrib(ret, R_ClassSymbol);
