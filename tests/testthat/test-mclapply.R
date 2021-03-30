@@ -188,7 +188,7 @@ test_that("joint fatal and non-fatal errors are handled correctly", {
     } else {
       stop(i)
     }
-  }), regexp = "--- AND ---")
+  }, mc.fail.early = FALSE), regexp = "--- AND ---")
 
   expect_error(
     expect_warning(
@@ -198,7 +198,7 @@ test_that("joint fatal and non-fatal errors are handled correctly", {
         } else {
           stop(i)
         }
-      }, mc.allow.error = TRUE),
+      }, mc.allow.error = TRUE, mc.fail.early = FALSE),
       regexp = "stop\\(i\\)"
     ),
     regexp = "Out of Memory Killer"
@@ -212,7 +212,7 @@ test_that("joint fatal and non-fatal errors are handled correctly", {
         } else {
           stop(i)
         }
-      }, mc.allow.fatal = TRUE),
+      }, mc.allow.fatal = TRUE, mc.fail.early = FALSE),
       regexp = "Out of Memory Killer"
     ),
     regexp = "stop\\(i\\)"
@@ -225,7 +225,7 @@ test_that("joint fatal and non-fatal errors are handled correctly", {
       } else {
         stop(i)
       }
-    }, mc.allow.fatal = NULL, mc.allow.error = TRUE),
+    }, mc.allow.fatal = NULL, mc.allow.error = TRUE, mc.fail.early = FALSE),
     regexp = "stop\\(i\\)|Out of Memory Killer"
   )
 })
@@ -234,7 +234,7 @@ test_that("mclapply handles warnings correctly", {
   skip_on_os("windows")
   expect_warning(bettermc::mclapply(1:2, function(i) warning(i)),
                "1: 1", fixed = TRUE)
-  expect_error(bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "stop"),
+  expect_error(bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "stop", mc.fail.early = FALSE),
                "(converted from warning)", fixed = TRUE)
   expect_silent(bettermc::mclapply(1:2, function(i) warning(i), mc.warnings = "ignore"))
 
