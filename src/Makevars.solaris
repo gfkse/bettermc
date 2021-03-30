@@ -1,5 +1,5 @@
 PKG_LIBS = -lrt
-PKG_CFLAGS = -DCHECK_EXACT_SHM_OBJ_SIZE
+PKG_CFLAGS = -DCHECK_EXACT_SHM_OBJ_SIZE -Iinclude
 
 # CC11 is defined by the configure script
 all: $(SHLIB)

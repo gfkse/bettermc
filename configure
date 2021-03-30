@@ -15,6 +15,7 @@ case `uname | tr '[A-Z]' '[a-z]'` in
     echo "CC11 = $CC11" >> src/Makevars
     ;;
   darwin*)
+    cp src/Makevars.macos src/Makevars
     ;;
   *)
     echo "This does not look like Linux, Solaris or macOS. Aborting." >&2

@@ -14,6 +14,8 @@
 #include <signal.h>
 #include <setjmp.h>
 
+#include "vg/memcheck.h"
+
 // https://github.com/wch/r-source/blob/tags/R-3-6-3/src/include/Defn.h#L409-L422
 typedef struct {
   union {
@@ -303,6 +305,7 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
   SEXP ret;
   if (!asLogical(copy) && asReal(length) >= 2) {
     ret = PROTECT(allocVector3(asInteger(type), asReal(length), &allocator));
+    VALGRIND_MAKE_MEM_DEFINED(DATAPTR(ret), dataptr_size);
   } else {
     ret = PROTECT(allocVector(asInteger(type), asReal(length)));
 
