@@ -1,0 +1,2 @@
+# fix github language detection (https://stackoverflow.com/a/26948938/3635437)
+src/include/vg/* linguist-vendored
