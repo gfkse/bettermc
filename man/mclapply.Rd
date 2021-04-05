@@ -136,14 +136,17 @@ and potentially crash dumps (c.f. \code{mc.dump.frames} and
 \code{\link{etry}}).}
 
 \item{mc.retry}{\code{abs(mc.retry)} is the maximum number of retries of
-failed applications of \code{FUN} in case of both fatal and non-fatal
-errors. This is useful if we expect \code{FUN} to fail either randomly
-(e.g. non-convergence of a model) or temporarily (e.g. database
-connections). Additionally, if \code{mc.retry <= -1}, the value of
-\code{mc.cores} is gradually decreased with each retry to a minimum of 1 (2
-if \code{mc.force.fork = TRUE}). This is useful if we expect failures due
-to too many parallel processes, e.g. the Linux Out Of Memory Killer
-sacrificing some of the child processes.}
+  failed applications of \code{FUN} in case of both fatal and non-fatal
+  errors. This is useful if we expect \code{FUN} to fail either randomly
+  (e.g. non-convergence of a model) or temporarily (e.g. database
+  connections). Additionally, if \code{mc.retry <= -1}, the value of
+  \code{mc.cores} is gradually decreased with each retry to a minimum of 1 (2
+  if \code{mc.force.fork = TRUE}). This is useful if we expect failures due
+  to too many parallel processes, e.g. the Linux Out Of Memory Killer
+  sacrificing some of the child processes.
+
+  The environment variable "BMC_RETRY" indicates the current retry. A value
+  of "0" means first try, a value of "1" first \emph{re}try, etc.}
 
 \item{mc.fail.early}{should we try to fail fast after encountering the first
 (non-fatal) error in \code{FUN}? Such errors will be recorded as objects of

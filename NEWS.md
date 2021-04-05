@@ -10,6 +10,9 @@ Still, this allows code employing `bettermc::mclapply()`, which was originally d
 ### Seeding
 * restore the state of the random number generator (RNG) at the end of `mclapply()` to what it was before; this makes the RNG state of the parent process immune to changes to arguments such as `mc.cores` or `mc.force.fork`
 
+### Misc
+* the environment variable "BMC_RETRY" now indicates the current retry ("0" means first try, a value of "1" first *re*try, etc.)
+
 ## Bug Fixes
 * on the first call of `mclapply()` in a session, the environment variable MC_CORES was not respected
 * fix wrong length of affinity.list if `mc.force.fork == TRUE && length(X) == 1`

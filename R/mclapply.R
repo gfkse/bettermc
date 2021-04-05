@@ -59,6 +59,9 @@
 #'   if \code{mc.force.fork = TRUE}). This is useful if we expect failures due
 #'   to too many parallel processes, e.g. the Linux Out Of Memory Killer
 #'   sacrificing some of the child processes.
+#'
+#'   The environment variable "BMC_RETRY" indicates the current retry. A value
+#'   of "0" means first try, a value of "1" first \emph{re}try, etc.
 #' @param mc.fail.early should we try to fail fast after encountering the first
 #'   (non-fatal) error in \code{FUN}? Such errors will be recorded as objects of
 #'   classes \code{c("fail-early-error", "try-error")}.
@@ -338,7 +341,7 @@ mclapply <- function(X, FUN, ...,
   # define core ----
   # we need to cleanup after each try, hence the core function such that we can
   # use on.exit
-  core <- function(tries_left) {
+  core <- function(tries_left, try_idx) {
     # ppid is used to name POSIX shared memory objects and semaphores
     ppid <- Sys.getpid()
 
@@ -543,6 +546,15 @@ mclapply <- function(X, FUN, ...,
       } else {
         chandler <- function(cond) NULL
       }
+
+      evar <- Sys.getenv("BMC_RETRY", unset = NA)
+      if (is.na(evar)) {
+        on.exit(Sys.unsetenv("BMC_RETRY"), add = TRUE)
+      } else {
+        # maybe a recursive call
+        on.exit(Sys.setenv(BMC_RETRY = evar), add = TRUE)
+      }
+      Sys.setenv(BMC_RETRY = try_idx)
 
       # evaluate FUN and handle errors (etry), warnings and messages;
       # res is always a one-element list except in case of error when it is an
@@ -794,7 +806,7 @@ mclapply <- function(X, FUN, ...,
       mc.compress.chars <- Inf
     }
 
-    res[X_seq] <- core(tries_left)
+    res[X_seq] <- core(tries_left, try_idx = i - 1L)
     X_seq <- which(unlist(lapply(res, function(e) is.null(e) || inherits(e, "try-error"))))
 
     if (length(X_seq) == 0L) break
