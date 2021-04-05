@@ -13,3 +13,24 @@ test_that("seeding works", {
   expect_identical(ret4, ret1)
   expect_identical(ret5, ret1)
 })
+
+test_that("RNG state outside of mclapply is not affected", {
+  set.seed(987)
+  x <- runif(10)
+
+  set.seed(987)
+  bettermc::mclapply(1:4, function(i) runif(i))
+  y <- runif(10)
+
+  set.seed(987)
+  bettermc::mclapply(1:4, function(i) runif(i), mc.set.seed = 123)
+  z <- runif(10)
+
+  expect_identical(y, x)
+  expect_identical(z, x)
+
+
+  # test case where there is no .Random.seed
+  rm(list = ".Random.seed", pos = .GlobalEnv)
+  bettermc::mclapply(1:4, function(i) runif(i), mc.set.seed = 123)
+})

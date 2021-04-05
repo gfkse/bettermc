@@ -21,6 +21,17 @@
 #'   current state of the random number generator in the parent process.
 #'   integerish value - call \code{set.seed(mc.set.seed)} in the parent and then
 #'   continue as if \code{mc.set.seed} was \code{NA}.
+#'
+#'   In both (\code{NA}- and integerish-) cases, the state of the random number
+#'   generator, i.e. the object \code{.Random.seed} in the global environment,
+#'   is restored at the end of the function to what it was when \code{mclapply}
+#'   was called. If the random number generator is not yet initialized in the
+#'   current session, it is initialized internally (by calling \code{runif(1)})
+#'   and the resulting state is what gets restored later. In particular, this
+#'   means that the seed supplied as \code{mc.set.seed} does \emph{not} seed the
+#'   code following the call to \code{mclapply}. All this ensures that arguments
+#'   like \code{mc.cores}, \code{mc.force.fork} etc. can be adjusted without
+#'   affecting the state of the RNG outside of \code{mclapply}.
 #' @param mc.allow.fatal should fatal errors in child processes make
 #'   \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
 #'   (\code{TRUE})?
@@ -307,6 +318,13 @@ mclapply <- function(X, FUN, ...,
   root_warning <- make_root_warning()
 
   if (!isTRUE(mc.set.seed) && !isFALSE(mc.set.seed)) {
+    rng_state <- get0(".Random.seed", .GlobalEnv, inherits = FALSE)
+    if (is.null(rng_state)) {
+      stats::runif(1)  # init RNG
+      rng_state <- get0(".Random.seed", .GlobalEnv, inherits = FALSE)
+    }
+    on.exit(assign(".Random.seed", rng_state, .GlobalEnv), add = TRUE)
+
     if (!is.na(mc.set.seed)) set.seed(mc.set.seed)
     seeds_list <- lapply(seq_len(abs(mc.retry) + 1), function(i) {
       round(stats::runif(length(X), -.Machine$integer.max, .Machine$integer.max))
@@ -358,7 +376,7 @@ mclapply <- function(X, FUN, ...,
         lapply(seq_along(X), function(i)
           unlink_all_shm(paste0(shm_prefix, i, "_"), start = 1L))
       }
-    })
+    }, add = TRUE)
 
 
     # create dedicated child process for printing progress bar ----

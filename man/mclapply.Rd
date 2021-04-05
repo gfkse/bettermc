@@ -69,12 +69,23 @@ crash_dumps  # environment with crash dumps created by mclapply (cf. mc.dumpto)
     \code{X} compared to \code{mc.cores}.}
 
 \item{mc.set.seed}{\code{TRUE} or \code{FALSE} are directly handled by
-\code{\link[parallel:mclapply]{parallel::mclapply}}. \code{bettermc} also
-supports two additional values: \code{NA} (the default) - seed every
-invocation of \code{FUN} differently but in a reproducible way based on the
-current state of the random number generator in the parent process.
-integerish value - call \code{set.seed(mc.set.seed)} in the parent and then
-continue as if \code{mc.set.seed} was \code{NA}.}
+  \code{\link[parallel:mclapply]{parallel::mclapply}}. \code{bettermc} also
+  supports two additional values: \code{NA} (the default) - seed every
+  invocation of \code{FUN} differently but in a reproducible way based on the
+  current state of the random number generator in the parent process.
+  integerish value - call \code{set.seed(mc.set.seed)} in the parent and then
+  continue as if \code{mc.set.seed} was \code{NA}.
+
+  In both (\code{NA}- and integerish-) cases, the state of the random number
+  generator, i.e. the object \code{.Random.seed} in the global environment,
+  is restored at the end of the function to what it was when \code{mclapply}
+  was called. If the random number generator is not yet initialized in the
+  current session, it is initialized internally (by calling \code{runif(1)})
+  and the resulting state is what gets restored later. In particular, this
+  means that the seed supplied as \code{mc.set.seed} does \emph{not} seed the
+  code following the call to \code{mclapply}. All this ensures that arguments
+  like \code{mc.cores}, \code{mc.force.fork} etc. can be adjusted without
+  affecting the state of the RNG outside of \code{mclapply}.}
 
 \item{mc.silent}{if set to \code{TRUE} then all output on
     \file{stdout} will be suppressed for all parallel processes forked
