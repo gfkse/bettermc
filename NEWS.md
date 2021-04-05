@@ -1,5 +1,12 @@
 # bettermc [v1.0.1.9000]
 
+## New Features
+
+### Windows Support
+This package can now also be installed on Windows, where it offers a reduced set of features.
+Most notably, `bettermc::mclapply()` (just like `parallel::mclapply()`) falls back on serial execution, since forking is not available on Windows.
+Still, this allows code employing `bettermc::mclapply()`, which was originally developed for Linux or macOS, to be run on Windows.
+
 ## Bug Fixes
 * on the first call of `mclapply()` in a session, the environment variable MC_CORES was not respected
 * fix wrong length of affinity.list if `mc.force.fork == TRUE && length(X) == 1`

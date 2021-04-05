@@ -21,6 +21,8 @@
 #'   \code{\link[base:traceback]{.traceback}}, (dump.frames) the crash dump
 #'   which can be examined using \code{\link[utils:debugger]{utils::debugger}}.
 #'
+#' @section Windows Support: Fully supported on Windows.
+#'
 #' @section Lifecycle:
 #'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options:
 #'   alt='[Stable]'}}}{\strong{[Stable]}}

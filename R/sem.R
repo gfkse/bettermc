@@ -9,6 +9,8 @@
 #' @param value the initial value of the semaphore (\code{>= 0}).
 #' @param sem an object as returned by \code{sem_open}.
 #'
+#' @section Windows Support: Not supported on Windows.
+#'
 #' @section Lifecycle:
 #'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:
 #'   alt='[Experimental]'}}}{\strong{[Experimental]}}
@@ -65,6 +67,8 @@ sem_unlink <- function(name) {
 #' @param undo should the operations (decrement/increment) on the semaphore be
 #'   undone on process termination. This feature is probably the main reason to
 #'   prefer System V semaphores to POSIX ones.
+#'
+#' @section Windows Support: Not supported on Windows.
 #'
 #' @section Lifecycle:
 #'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:

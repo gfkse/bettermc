@@ -21,6 +21,8 @@
 #'   be called immediately before and after (de)serializing the object, i.e.
 #'   compress -> serialize -> store/transfer -> de-serialize -> uncompress.
 #'
+#' @section Windows Support: Fully supported on Windows.
+#'
 #' @section Lifecycle:
 #'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:
 #'    alt='[Experimental]'}}}{\strong{[Experimental]}}
@@ -170,6 +172,8 @@ uncompress_chars <- function(l, class = character()) {
 #'
 #' names(x) <- 1:100
 #' stopifnot(identical(x, map2char(char_map(x))))
+#'
+#' @section Windows Support: Fully supported on Windows.
 #'
 #' @section Lifecycle:
 #'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options:

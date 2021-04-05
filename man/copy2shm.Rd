@@ -74,6 +74,10 @@ such.
 See also the general notes on POSIX shared memory under
   \code{\link{mclapply}}.
 }
+\section{Windows Support}{
+ Not supported on Windows.
+}
+
 \section{Lifecycle}{
 
   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options:

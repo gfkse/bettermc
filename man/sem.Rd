@@ -41,6 +41,10 @@ For \code{sem_open}, an object of class "sem", which is an external
 \description{
 Named POSIX Semaphores
 }
+\section{Windows Support}{
+ Not supported on Windows.
+}
+
 \section{Lifecycle}{
 
   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:

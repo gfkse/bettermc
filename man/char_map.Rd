@@ -32,6 +32,10 @@ addresses of the strings in the global string cache. Hence, in contrast to
 which differ only in their encoding. Also, the order of the unique elements
 is undefined.
 }
+\section{Windows Support}{
+ Fully supported on Windows.
+}
+
 \section{Lifecycle}{
 
   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options:

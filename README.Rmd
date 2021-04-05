@@ -69,7 +69,7 @@ devtools::install_github("gfkse/bettermc")
 By now it should also compile and run on 32-bit systems, and on macOS and Solaris.
 However, as stated in the respective help pages, not all features are supported on macOS.
 Porting to other POSIX-compliant Unix flavors should be fairly straightforward.
-Windows is not supported.
+The Windows support is very limited and mainly provided for compatibility reasons only, i.e. to allow the *serial* execution of code using `bettermc::mclapply`, which was originally developed for Linux or macOS.
 
 ## Features
 Here is a short overview on its main features ...

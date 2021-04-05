@@ -33,6 +33,10 @@ For \code{semv_open}, an object of class "semv", which is an integer
 \description{
 Mimic the POSIX semaphore API with System V semaphores.
 }
+\section{Windows Support}{
+ Not supported on Windows.
+}
+
 \section{Lifecycle}{
 
   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options:

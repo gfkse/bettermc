@@ -164,6 +164,29 @@
 #' @seealso \code{\link{copy2shm}}, \code{\link{char_map}},
 #'   \code{\link[parallel:mclapply]{parallel::mclapply}}
 #'
+#' @section Windows Support: On Windows, otherwise valid values for various
+#'   arguments are silently replaced as follows:
+#' \preformatted{  mc.cores <- 1L
+#'   mc.share.vectors <- Inf
+#'   mc.shm.ipc <- FALSE
+#'   mc.force.fork <- FALSE
+#'   mc.progress <- FALSE
+#'   if (mc.stdout == "output") mc.stdout <- "ignore"
+#'   if (mc.warnings == "output") mc.warnings <- "ignore"
+#'   if (mc.messages == "output") mc.messages <- "ignore"}
+#'
+#'   \bold{Note:} \code{\link[parallel:mclapply]{parallel::mclapply}} demands
+#'   \code{mc.cores} to be exactly 1 on Windows; \code{bettermc::mclapply} sets
+#'   it to 1 on Windows.
+#'
+#'   Furthermore, \code{\link[parallel:mclapply]{parallel::mclapply}} ignores
+#'   the following arguments on Windows: \code{mc.preschedule, mc.silent,
+#'   mc.cleanup, mc.allow.recursive, affinity.list}. For \code{mc.set.seed},
+#'   only the values \code{TRUE} and \code{FALSE} are ignored (by
+#'   \code{\link[parallel:mclapply]{parallel::mclapply}}); the other values are
+#'   handled by \code{bettermc::mclapply} as documented above.
+#'
+#'
 #' @section Lifecycle:
 #'   \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options:
 #'    alt='[Stable]'}}}{\strong{[Stable]}}
