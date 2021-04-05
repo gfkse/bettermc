@@ -27,6 +27,7 @@ mclapply(
   mc.allow.fatal = FALSE,
   mc.allow.error = FALSE,
   mc.retry = 0L,
+  mc.retry.fixed.seed = FALSE,
   mc.fail.early = !(mc.allow.error || mc.retry != 0L),
   mc.dump.frames = c("partial", "full", "full_global", "no"),
   mc.dumpto = ifelse(interactive(), "last.dump", "file://last.dump.rds"),
@@ -147,6 +148,11 @@ and potentially crash dumps (c.f. \code{mc.dump.frames} and
 
   The environment variable "BMC_RETRY" indicates the current retry. A value
   of "0" means first try, a value of "1" first \emph{re}try, etc.}
+
+\item{mc.retry.fixed.seed}{should \code{FUN} for a particular element of
+\code{X} always be invoked with the same fixed seed (\code{TRUE}) or should
+a different seed be used on each try (\code{FALSE}, default). Only
+effective if \code{mc.set.seed} is \code{NA} or a number.}
 
 \item{mc.fail.early}{should we try to fail fast after encountering the first
 (non-fatal) error in \code{FUN}? Such errors will be recorded as objects of

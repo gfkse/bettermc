@@ -9,6 +9,7 @@ Still, this allows code employing `bettermc::mclapply()`, which was originally d
 
 ### Seeding
 * restore the state of the random number generator (RNG) at the end of `mclapply()` to what it was before; this makes the RNG state of the parent process immune to changes to arguments such as `mc.cores` or `mc.force.fork`
+* new argument `mc.retry.fixed.seed` to `mclapply()`: `TRUE` invokes `FUN()` for a particular element of `X` with the same fixed seed on every retry; default is `FALSE`
 
 ### Misc
 * the environment variable "BMC_RETRY" now indicates the current retry ("0" means first try, a value of "1" first *re*try, etc.)

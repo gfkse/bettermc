@@ -104,3 +104,35 @@ test_that("mc.retry works", {
   expect_identical(res1, res2)
   expect_identical(res1, res3)
 })
+
+test_that("mc.retry.fixed.seed works", {
+  set.seed(123)
+  res1 <- suppressMessages(
+    bettermc::mclapply(1:20, function(i) {
+      r <- runif(1)
+      if (Sys.getenv("BMC_RETRY") == "0" && r < 0.5)
+        stop(i)
+      else
+        runif(1)
+    }, mc.retry = 1, mc.retry.fixed.seed = TRUE)
+  )
+
+  res2 <- suppressMessages(
+    bettermc::mclapply(1:20, function(i) {
+      r <- runif(1)
+      if (Sys.getenv("BMC_RETRY") == "0" && r < 0.5)
+        stop(i)
+      else
+        runif(1)
+    }, mc.retry = 1, mc.retry.fixed.seed = FALSE)
+  )
+
+  res3 <- bettermc::mclapply(1:20, function(i) {
+      r <- runif(1)
+      runif(1)
+    }
+  )
+
+  expect_false(identical(res1, res2))
+  expect_identical(res1, res3)
+})

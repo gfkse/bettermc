@@ -62,6 +62,10 @@
 #'
 #'   The environment variable "BMC_RETRY" indicates the current retry. A value
 #'   of "0" means first try, a value of "1" first \emph{re}try, etc.
+#' @param mc.retry.fixed.seed should \code{FUN} for a particular element of
+#'   \code{X} always be invoked with the same fixed seed (\code{TRUE}) or should
+#'   a different seed be used on each try (\code{FALSE}, default). Only
+#'   effective if \code{mc.set.seed} is \code{NA} or a number.
 #' @param mc.fail.early should we try to fail fast after encountering the first
 #'   (non-fatal) error in \code{FUN}? Such errors will be recorded as objects of
 #'   classes \code{c("fail-early-error", "try-error")}.
@@ -221,6 +225,7 @@ mclapply <- function(X, FUN, ...,
                      affinity.list = NULL,
                      mc.allow.fatal = FALSE, mc.allow.error = FALSE,
                      mc.retry = 0L,
+                     mc.retry.fixed.seed = FALSE,
                      mc.fail.early = !(mc.allow.error || mc.retry != 0L),
                      mc.dump.frames = c("partial", "full", "full_global", "no"),
                      mc.dumpto = ifelse(interactive(), "last.dump",
@@ -255,6 +260,7 @@ mclapply <- function(X, FUN, ...,
   checkmate::assert_flag(mc.allow.fatal, null.ok = TRUE)
   checkmate::assert_flag(mc.allow.error)
   checkmate::assert_int(mc.retry)
+  checkmate::assert_flag(mc.retry.fixed.seed)
   checkmate::assert_flag(mc.fail.early)
   checkmate::assert_string(mc.dumpto, min.chars = 1L)
   checkmate::assert_flag(mc.shm.ipc)
@@ -332,6 +338,9 @@ mclapply <- function(X, FUN, ...,
     seeds_list <- lapply(seq_len(abs(mc.retry) + 1), function(i) {
       round(stats::runif(length(X), -.Machine$integer.max, .Machine$integer.max))
     })
+    if (mc.retry.fixed.seed) {
+      seeds_list[-1L] <- seeds_list[1L]
+    }
     mc.set.seed <- TRUE
   } else {
     seeds_list <- NULL
