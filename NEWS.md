@@ -16,6 +16,7 @@ Still, this allows code employing `bettermc::mclapply()`, which was originally d
 * new argument `mc.retry.silent` to `mclapply()`: `TRUE` suppresses the messages indicating failures during intermediate retires; default is `FALSE`
 
 ## Bug Fixes
+* on retires, output, messages etc. might have been prefixed with the wrong index w.r.t. `X`
 * on the first call of `mclapply()` in a session, the environment variable MC_CORES was not respected
 * fix wrong length of affinity.list if `mc.force.fork == TRUE && length(X) == 1`
 * fix tiny memory leaks reported by Valgrind in `allocate_from_shm()`

@@ -352,6 +352,12 @@ mclapply <- function(X, FUN, ...,
     seeds <- NULL
   }
 
+  # closure to convert an index w.r.t. X to an index w.r.t. the original X;
+  # X might be different from X_orig on retires;
+  # the index w.r.t. X_orig is needed to prefix output/messages/... and to name
+  # shm objects
+  X_idx2X_orig_idx <- function(i) X_seq[i]
+
   # define core ----
   # we need to cleanup after each try, hence the core function such that we can
   # use on.exit
@@ -383,7 +389,7 @@ mclapply <- function(X, FUN, ...,
     on.exit({
       if (mc.shm.ipc) {
         lapply(seq_along(X), function(i)
-          unlink_all_shm(paste0(shm_prefix, i, "_"), start = 0L))
+          unlink_all_shm(paste0(shm_prefix, X_idx2X_orig_idx(i), "_"), start = 0L))
       }
 
       # if mc.shm.ipc == TRUE, then we would generally not need to run
@@ -391,7 +397,7 @@ mclapply <- function(X, FUN, ...,
       # was already unlinked but some of the objects 1, 2, ... still exist
       if (!is.infinite(mc.share.vectors)) {
         lapply(seq_along(X), function(i)
-          unlink_all_shm(paste0(shm_prefix, i, "_"), start = 1L))
+          unlink_all_shm(paste0(shm_prefix, X_idx2X_orig_idx(i), "_"), start = 1L))
       }
     }, add = TRUE)
 
@@ -468,11 +474,11 @@ mclapply <- function(X, FUN, ...,
       X <- X[[mc.X.idx]]
 
       if (OSTYPE == "linux") {
-        stdout_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&1", mc.X.idx))
-        stderr_pipe <- pipe(sprintf("sed -u 's/^/%5d: /' >&2", mc.X.idx))
+        stdout_pipe <- pipe(sprintf("sed -u 's|^|%d/%d: |' >&1", try_idx, X_idx2X_orig_idx(mc.X.idx)))
+        stderr_pipe <- pipe(sprintf("sed -u 's|^|%d/%d: |' >&2", try_idx, X_idx2X_orig_idx(mc.X.idx)))
       } else if (OSTYPE %in% c("macos", "solaris")) {
-        stdout_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&1", mc.X.idx))
-        stderr_pipe <- pipe(sprintf("sed 's/^/%5d: /' >&2", mc.X.idx))
+        stdout_pipe <- pipe(sprintf("sed 's|^|%d/%d: |' >&1", try_idx, X_idx2X_orig_idx(mc.X.idx)))
+        stderr_pipe <- pipe(sprintf("sed 's|^|%d/%d: |' >&2", try_idx, X_idx2X_orig_idx(mc.X.idx)))
       } else if (OSTYPE == "windows") {
         stdout_pipe <- NULL
         stderr_pipe <- NULL
@@ -492,7 +498,7 @@ mclapply <- function(X, FUN, ...,
         on.exit(close(stderr_pipe), add = TRUE)
       }
 
-      shm_prefix <- paste0(shm_prefix, mc.X.idx, "_")
+      shm_prefix <- paste0(shm_prefix, X_idx2X_orig_idx(mc.X.idx), "_")
 
       warnings <- list()
       if (mc.warnings == "signal") {
@@ -722,7 +728,7 @@ mclapply <- function(X, FUN, ...,
       res <- lapply(seq_along(res), function(i) {
         e <- res[[i]]
         if (!is.null(attr(e, "bettermc_output"))) {
-          cat(paste0(sprintf("%5d: ", i) ,attr(e, "bettermc_output")), sep = "\n")
+          cat(paste0(sprintf("%d/%d: ", try_idx, X_idx2X_orig_idx(i)) ,attr(e, "bettermc_output")), sep = "\n")
           attr(e, "bettermc_output") <- NULL
         }
         e
@@ -734,7 +740,7 @@ mclapply <- function(X, FUN, ...,
         e <- res[[i]]
         if (!is.null(attr(e, "bettermc_warnings"))) {
           lapply(attr(e, "bettermc_warnings"), function(w) {
-            w$message <- sprintf("%d: %s", i, w$message)
+            w$message <- sprintf("%d/%d: %s", try_idx, X_idx2X_orig_idx(i), w$message)
             warning(w)
           })
           attr(e, "bettermc_warnings") <- NULL
@@ -748,7 +754,7 @@ mclapply <- function(X, FUN, ...,
         e <- res[[i]]
         if (!is.null(attr(e, "bettermc_messages"))) {
           lapply(attr(e, "bettermc_messages"), function(m) {
-            m$message <- sprintf("%5d: %s", i, m$message)
+            m$message <- sprintf("%d/%d: %s", try_idx, X_idx2X_orig_idx(i), m$message)
             message(m)
           })
           attr(e, "bettermc_messages") <- NULL
@@ -762,7 +768,7 @@ mclapply <- function(X, FUN, ...,
         e <- res[[i]]
         if (!is.null(attr(e, "bettermc_conditions"))) {
           lapply(attr(e, "bettermc_conditions"), function(cond) {
-            cond$message <- sprintf("%5d: %s", i, cond$message)
+            cond$message <- sprintf("%d/%d: %s", try_idx, X_idx2X_orig_idx(i), cond$message)
             signalCondition(cond)
           })
           attr(e, "bettermc_conditions") <- NULL
@@ -772,7 +778,7 @@ mclapply <- function(X, FUN, ...,
     }
 
     if (!mc.retry.silent && tries_left && mc_fatal) {
-      msg <- "at least one scheduled core did not return results;" %\%
+      msg <- try_idx %+% ": at least one scheduled core did not return results;" %\%
         "maybe it was killed (by the Linux Out of Memory Killer ?) or there" %\%
         "was a fatal error in the forked process(es)"
       message(msg)
@@ -781,7 +787,7 @@ mclapply <- function(X, FUN, ...,
     if (!mc.retry.silent && tries_left &&
         any(mc_error <- vapply(res, inherits, logical(1L), what = "etry-error"))) {
       orig_message <- res[[which(mc_error)[1]]]
-      msg <- "error(s) occured during mclapply; first original message:\n\n" %+%
+      msg <- try_idx %+% ": error(s) occured during mclapply; first original message:\n\n" %+%
         paste0(capture.output(orig_message), collapse = "\n")
       message(msg)
     }
