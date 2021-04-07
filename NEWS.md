@@ -13,6 +13,7 @@ Still, this allows code employing `bettermc::mclapply()`, which was originally d
 
 ### Misc
 * the environment variable "BMC_RETRY" now indicates the current retry ("0" means first try, a value of "1" first *re*try, etc.)
+* new argument `mc.retry.silent` to `mclapply()`: `TRUE` suppresses the messages indicating failures during intermediate retires; default is `FALSE`
 
 ## Bug Fixes
 * on the first call of `mclapply()` in a session, the environment variable MC_CORES was not respected

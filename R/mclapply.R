@@ -62,15 +62,18 @@
 #'
 #'   The environment variable "BMC_RETRY" indicates the current retry. A value
 #'   of "0" means first try, a value of "1" first \emph{re}try, etc.
+#' @param mc.retry.silent should the messages indicating both fatal and
+#'   non-fatal failures during all but the last retry be suppressed
+#'   (\code{TRUE}) or not (\code{FALSE}, default)?
 #' @param mc.retry.fixed.seed should \code{FUN} for a particular element of
 #'   \code{X} always be invoked with the same fixed seed (\code{TRUE}) or should
-#'   a different seed be used on each try (\code{FALSE}, default). Only
+#'   a different seed be used on each try (\code{FALSE}, default)? Only
 #'   effective if \code{mc.set.seed} is \code{NA} or a number.
 #' @param mc.fail.early should we try to fail fast after encountering the first
 #'   (non-fatal) error in \code{FUN}? Such errors will be recorded as objects of
 #'   classes \code{c("fail-early-error", "try-error")}.
 #' @param mc.dump.frames should we \code{\link[utils]{dump.frames}} on non-fatal
-#'   errors in \code{FUN}. The default "partial" omits the frames (roughly) up
+#'   errors in \code{FUN}? The default "partial" omits the frames (roughly) up
 #'   to the call of \code{FUN}. See \code{\link{etry}} for the other options.
 #' @param mc.dumpto where to save the result including the dumped frames if
 #'   \code{mc.dump.frames != "no" & mc.allow.error == FALSE}? Either the name of
@@ -225,6 +228,7 @@ mclapply <- function(X, FUN, ...,
                      affinity.list = NULL,
                      mc.allow.fatal = FALSE, mc.allow.error = FALSE,
                      mc.retry = 0L,
+                     mc.retry.silent = FALSE,
                      mc.retry.fixed.seed = FALSE,
                      mc.fail.early = !(mc.allow.error || mc.retry != 0L),
                      mc.dump.frames = c("partial", "full", "full_global", "no"),
@@ -260,6 +264,7 @@ mclapply <- function(X, FUN, ...,
   checkmate::assert_flag(mc.allow.fatal, null.ok = TRUE)
   checkmate::assert_flag(mc.allow.error)
   checkmate::assert_int(mc.retry)
+  checkmate::assert_flag(mc.retry.silent)
   checkmate::assert_flag(mc.retry.fixed.seed)
   checkmate::assert_flag(mc.fail.early)
   checkmate::assert_string(mc.dumpto, min.chars = 1L)
@@ -766,14 +771,14 @@ mclapply <- function(X, FUN, ...,
       })
     }
 
-    if (tries_left && mc_fatal) {
+    if (!mc.retry.silent && tries_left && mc_fatal) {
       msg <- "at least one scheduled core did not return results;" %\%
         "maybe it was killed (by the Linux Out of Memory Killer ?) or there" %\%
         "was a fatal error in the forked process(es)"
       message(msg)
     }
 
-    if (tries_left &&
+    if (!mc.retry.silent && tries_left &&
         any(mc_error <- vapply(res, inherits, logical(1L), what = "etry-error"))) {
       orig_message <- res[[which(mc_error)[1]]]
       msg <- "error(s) occured during mclapply; first original message:\n\n" %+%
