@@ -1,4 +1,4 @@
-# bettermc [v1.0.1.9000]
+# bettermc [v1.1.1]
 
 ## New Features
 
