@@ -866,10 +866,13 @@ mclapply <- function(X, FUN, ...,
   if (error_idx && !mc.allow.error && mc.dump.frames != "no") {
     if (grepl("^file://", mc.dumpto)) {
       file <- gsub("^file://", "", mc.dumpto)
-      saveRDS(res, file)
-      file <- normalizePath(file)
-      message("crash dump saved to file'", file, "'; for debugging the first error, use:\n'{last.dump <- readRDS(\"",
-              file, "\"); utils::debugger(attr(last.dump[[", error_idx, "]], \"dump.frames\"))}'")
+      if (inherits(try(saveRDS(res, file)), "try-error")) {
+        message("failed to save crash dump to ", file)
+      } else {
+        file <- normalizePath(file)
+        message("crash dump saved to file'", file, "'; for debugging the first error, use:\n'{last.dump <- readRDS(\"",
+                file, "\"); utils::debugger(attr(last.dump[[", error_idx, "]], \"dump.frames\"))}'")
+      }
     } else {
       assign(mc.dumpto, res, crash_dumps)
       message("crash dump saved to object '", mc.dumpto, "' in environment 'bettermc::crash_dumps';",
