@@ -1,0 +1,4 @@
+all: $(SHLIB)
+
+%.o: %.c
+	$(CC) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -std=gnu11 -c $< -o $@

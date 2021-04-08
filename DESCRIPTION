@@ -19,6 +19,7 @@ Description: Drop-in replacement for 'parallel::mclapply()' adding e.g.
     'copy2shm()/allocate_from_shm()' (copy to and allocate from POSIX shared
     memory), 'char_map/map2char()' (split a character vector into its unique
     elements and a mapping on these) and various semaphore related functions.
+Biarch: true
 License: MIT + file LICENSE
 URL: https://github.com/gfkse/bettermc
 BugReports: https://github.com/gfkse/bettermc/issues
