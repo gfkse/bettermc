@@ -940,4 +940,4 @@ mclapply <- function(X, FUN, ...,
 #'   \link[=etry]{crash dumps} in case of non-fatal errors and if
 #'   \code{mc.dump.frames != "no" & mc.allow.error == FALSE}.
 #' @export
-crash_dumps <- new.env()
+crash_dumps <- NULL  # environment is created in .onLoad()

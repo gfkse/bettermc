@@ -11,9 +11,15 @@ OSTYPE <-
     stop("This does not look like a Linux, Solaris, macOS or Windows. Aborting.")
   }
 
-.onAttach = function(libname, pkgname) {
+.onAttach <- function(libname, pkgname) {
   if (OSTYPE == "windows") {
     packageStartupMessage("Many of the features of the bettermc-package are not supported on Windows. ",
                           "Please consult the 'Windows Support'-sections in the help pages for more details.")
   }
+}
+
+.onLoad <- function(libname, pkgname) {
+  # work around for an issue with source references and lazy loading as discussed in
+  # https://r.789695.n4.nabble.com/memory-consumption-of-nested-un-serialize-of-sys-frames-tp4768465.html
+  crash_dumps <<- new.env()
 }
