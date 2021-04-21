@@ -30,6 +30,8 @@ Imports:
     parallel
 RoxygenNote: 7.2
 Suggests:
+    doMC,
+    foreach,
     progress,
     spelling,
     testthat (>= 2.1.0)

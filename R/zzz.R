@@ -22,4 +22,13 @@ OSTYPE <-
   # work around for an issue with source references and lazy loading as discussed in
   # https://r.789695.n4.nabble.com/memory-consumption-of-nested-un-serialize-of-sys-frames-tp4768465.html
   crash_dumps <<- new.env()
+
+  parallel_mclapply <<- parallel::mclapply
+  if (!identical(environment(parallel_mclapply), asNamespace("parallel"))) {
+    stop("'parallel::mclapply()' is not the original function from the parallel package")
+  }
+}
+
+.onUnload <- function(libpath) {
+  undo_overload_mclapply(TRUE, TRUE, "all")
 }

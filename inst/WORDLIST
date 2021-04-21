@@ -17,6 +17,7 @@ crashdumps
 de
 deserialized
 dev
+doMC
 etry
 hyperthread
 idx
@@ -31,6 +32,7 @@ prescheduling
 radix
 rchk
 reproducibly
+rstan
 sem
 semv
 shm

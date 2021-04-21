@@ -648,7 +648,7 @@ mclapply <- function(X, FUN, ...,
       X_seq <- seq_along(X)
     }
     withCallingHandlers(
-      res <- parallel::mclapply(
+      res <- parallel_mclapply(
         X = X_seq, FUN = wrapper, ... = ...,
         mc.preschedule = mc.preschedule, mc.set.seed = mc.set.seed,
         mc.silent = mc.silent, mc.cores = mc.cores,
@@ -941,3 +941,5 @@ mclapply <- function(X, FUN, ...,
 #'   \code{mc.dump.frames != "no" & mc.allow.error == FALSE}.
 #' @export
 crash_dumps <- NULL  # environment is created in .onLoad()
+
+parallel_mclapply <- NULL
