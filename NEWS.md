@@ -1,6 +1,7 @@
 # bettermc [v1.1.1.9000]
 
 * work around an issue in base R w.r.t. source references and lazy loading as discussed in https://r.789695.n4.nabble.com/memory-consumption-of-nested-un-serialize-of-sys-frames-tp4768465.html
+* add `overload_mclapply()` for overloading `parallel::mclapply()` with `bettermc::mclapply()`
 
 # bettermc [v1.1.1]
 
