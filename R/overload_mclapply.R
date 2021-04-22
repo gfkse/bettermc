@@ -70,7 +70,7 @@ overload_mclapply <- function(parallel_namespace = FALSE,
 
   checkmate::assert_flag(parallel_namespace)
   checkmate::assert_flag(parallel_package)
-  checkmate::assert_character(imports, any.missing = FALSE, min.len = 1L)
+  checkmate::assert_character(imports, any.missing = FALSE, min.chars = 1L)
   checkmate::assert_list(defaults)
   if (length(defaults)) {
     checkmate::assert_names(names(defaults), type = "unique",
@@ -138,7 +138,7 @@ undo_overload_mclapply <- function(parallel_namespace = FALSE,
 
   checkmate::assert_flag(parallel_namespace)
   checkmate::assert_flag(parallel_package)
-  checkmate::assert_character(imports, any.missing = FALSE, min.len = 1L)
+  checkmate::assert_character(imports, any.missing = FALSE, min.chars = 1L)
 
   if (parallel_namespace) {
     replace_binding(asNamespace("parallel"), "mclapply", parallel_mclapply)
