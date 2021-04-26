@@ -3,7 +3,7 @@
 [![CRAN
 version](https://www.r-pkg.org/badges/version/bettermc)](https://cran.r-project.org/package=bettermc)
 [![CRAN
-status](https://cranchecks.info/badges/worst/bettermc)](https://cran.r-project.org/web/checks/check_results_bettermc.html)
+status](https://cranchecks.info/badges/flavor/release/bettermc)](https://cran.r-project.org/web/checks/check_results_bettermc.html)
 [![downloads](https://cranlogs.r-pkg.org/badges/grand-total/bettermc)](https://cran.r-project.org/package=bettermc)
 [![R build
 status](https://github.com/gfkse/bettermc/workflows/R-CMD-check/badge.svg)](https://github.com/gfkse/bettermc/actions?workflow=R-CMD-check)
