@@ -195,9 +195,12 @@ SEXP char_map_long(SEXP x) {
 
 
 SEXP set_attr(SEXP x, SEXP attr) {
-  ATTRIB(x) = shallow_duplicate(attr);
-  SEXP A = getAttrib(x, R_ClassSymbol);
-  if (! isNull(A)) OBJECT(x) = 1;
+  SEXP a = PROTECT(shallow_duplicate(attr));
+  SET_ATTRIB(x, a);
 
+  SEXP cls = getAttrib(x, R_ClassSymbol);
+  if (! isNull(cls)) classgets(x, cls);
+
+  UNPROTECT(1);
   return x;
 }

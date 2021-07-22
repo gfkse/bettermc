@@ -52,7 +52,8 @@ SEXP copy2shm(SEXP x, SEXP n, SEXP overwrite, SEXP huge_threshold) {
     return mkString(buf);
   }
 
-  size_t offset = sizeof(R_allocator_t) + sizeof(SEXPREC_ALIGN);
+  SEXP off = allocVector(RAWSXP, 1);
+  size_t offset = sizeof(R_allocator_t) + ((char *) DATAPTR(off) - (char *) off);
   size_t data_size;
 
   switch(TYPEOF(x)) {
@@ -294,7 +295,8 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
     error("unsupported SEXP type: %s", type2char(asInteger(type)));
   }
 
-  size_t offset = sizeof(R_allocator_t) + sizeof(SEXPREC_ALIGN);
+  SEXP off = allocVector(RAWSXP, 1);
+  size_t offset = sizeof(R_allocator_t) + ((char *) DATAPTR(off) - (char *) off);
   if (data->size - offset != expected_size) {
     shm_free(&allocator, sptr);
     error("'alloc_from_shm' expected a shared memory object with %zu bytes but it has %zu bytes.",
@@ -314,9 +316,10 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
     shm_free(&allocator, sptr);
   }
 
-  ATTRIB(ret) = PROTECT(shallow_duplicate(attributes));
-  SEXP A = getAttrib(ret, R_ClassSymbol);
-  if (! isNull(A)) OBJECT(ret) = 1;
+  SEXP a = PROTECT(shallow_duplicate(attributes));
+  SET_ATTRIB(ret, a);
+  SEXP cls = getAttrib(ret, R_ClassSymbol);
+  if (! isNull(cls)) classgets(ret, cls);
 
   UNPROTECT(2);
   return ret;
