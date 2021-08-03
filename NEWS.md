@@ -1,3 +1,7 @@
+# bettermc [v1.1.2.9000]
+
+* fix test failure if suggested *progress*-package is not available
+
 # bettermc [v1.1.2]
 
 ## Misc

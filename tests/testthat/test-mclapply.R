@@ -116,9 +116,16 @@ test_that("returning recursive environments using shared memory works", {
 })
 
 test_that("mc.progress works", {
-  expect_silent(
-    bettermc::mclapply(1:2, function(i) i, mc.progress = TRUE, mc.cores = 1)
-  )
+  if (requireNamespace("progress", quietly = TRUE)) {
+    expect_silent(
+      bettermc::mclapply(1:2, function(i) i, mc.progress = TRUE, mc.cores = 1)
+    )
+  } else {
+    expect_message(
+      bettermc::mclapply(1:2, function(i) i, mc.progress = TRUE, mc.cores = 1),
+      "Please install the progress-package in order to get a progress bar"
+    )
+  }
 })
 
 test_that("returning special vaules works correctly", {
