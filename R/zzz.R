@@ -20,6 +20,6 @@ OSTYPE <-
 
 .onLoad <- function(libname, pkgname) {
   # work around for an issue with source references and lazy loading as discussed in
-  # https://r.789695.n4.nabble.com/memory-consumption-of-nested-un-serialize-of-sys-frames-tp4768465.html
+  # https://stat.ethz.ch/pipermail/r-devel/2021-April/080599.html
   crash_dumps <<- new.env()
 }

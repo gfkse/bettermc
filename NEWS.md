@@ -5,7 +5,7 @@
 # bettermc [v1.1.2]
 
 ## Misc
-* work around an issue in base R w.r.t. source references and lazy loading as discussed in https://r.789695.n4.nabble.com/memory-consumption-of-nested-un-serialize-of-sys-frames-tp4768465.html
+* work around an issue in base R w.r.t. source references and lazy loading as discussed in <https://stat.ethz.ch/pipermail/r-devel/2021-April/080599.html>
 * prepare for upcoming changes to *Rinternals.h*
   * do no longer assign to `ATTRIB()` and `OBJECT()`
   * do no longer depend on `SEXPREC_ALIGN`
@@ -33,7 +33,7 @@ Still, this allows code employing `bettermc::mclapply()`, which was originally d
 * fix wrong length of affinity.list if `mc.force.fork == TRUE && length(X) == 1`
 * fix tiny memory leaks reported by Valgrind in `allocate_from_shm()`
 * fix invalid write reported by Valgrind in `allocate_from_shm()`
-* mark memory returned by custom allocator in `allocate_from_shm()` for Valgrind as defined (cf. https://r.789695.n4.nabble.com/custom-allocators-Valgrind-and-uninitialized-memory-td4768304.html)
+* mark memory returned by custom allocator in `allocate_from_shm()` for Valgrind as defined (cf. <https://stat.ethz.ch/pipermail/r-devel/2021-March/080572.html>)
 * fix test failure on macOS with a page size of more than 4 KiB
 
 # bettermc [v1.0.1]
