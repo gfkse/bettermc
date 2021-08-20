@@ -18,7 +18,9 @@ crashdumps
 de
 deserialized
 dev
+ethz
 etry
+https
 hyperthread
 idx
 implementational
@@ -28,6 +30,7 @@ mclapply
 muffleMessage
 muffleWarning
 parallelization
+pipermail
 prescheduling
 radix
 rchk
