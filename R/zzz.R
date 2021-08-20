@@ -22,4 +22,6 @@ OSTYPE <-
   # work around for an issue with source references and lazy loading as discussed in
   # https://stat.ethz.ch/pipermail/r-devel/2021-April/080599.html
   crash_dumps <<- new.env()
+
+  parallel_mclapply <<- parallel::mclapply
 }

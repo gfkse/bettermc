@@ -12,12 +12,14 @@ Tracebacks
 UX
 Valgrind
 allocator
+bettermcExt
 capturable
 codecov
 crashdumps
 de
 deserialized
 dev
+doMC
 ethz
 etry
 https
@@ -35,6 +37,7 @@ prescheduling
 radix
 rchk
 reproducibly
+rstan
 sem
 semv
 shm

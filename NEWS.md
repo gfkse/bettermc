@@ -1,6 +1,8 @@
 # bettermc [v1.1.2.9000]
 
 * fix test failure if suggested *progress*-package is not available
+* add support for overloading `parallel::mclapply()` with `bettermc::mclapply()` via the [bettermcExt](https://github.com/gfkse/bettermcExt)-package on GitHub;
+this enables the use of `bettermc::mclapply()` by third-party packages originally using `mclapply()` from the *parallel*-package, e.g. *doMC* or *rstan*
 
 # bettermc [v1.1.2]
 
