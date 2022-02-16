@@ -2,7 +2,6 @@
 #define BETTERMC_H
 
 #define _POSIX_C_SOURCE 200112L
-#define USE_RINTERNALS // for definition of SEXPREC_ALIGN
 
 #include "Rinternals.h"
 
