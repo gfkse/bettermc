@@ -362,6 +362,9 @@ test_that("mclapply works in edge cases", {
   al <- structure(list(character()), some_attr = 951)
   expect_identical(bettermc::mclapply(al, function(x) x),
                    parallel::mclapply(al, function(x) x))
+
+  expect_identical(names(bettermc::mclapply(character(), function(x) x)),
+                   character())
 })
 
 test_that("mc.force.fork correctly adjusts affinity.list", {
@@ -369,4 +372,14 @@ test_that("mc.force.fork correctly adjusts affinity.list", {
   expect_silent(bettermc::mclapply(1, function(i) i, mc.preschedule = FALSE, mc.force.fork = TRUE, affinity.list = 1))
   expect_silent(bettermc::mclapply(1, function(i) i, mc.preschedule = FALSE, mc.force.fork = TRUE, affinity.list = list(1)))
   expect_silent(bettermc::mclapply(1, function(i) i, mc.preschedule = FALSE, mc.force.fork = TRUE, affinity.list = list(c(1, 2))))
+})
+
+test_that("results are properly named", {
+  expect_identical(names(bettermc::mclapply(letters, function(x) x)),
+                   letters)
+
+  X <- letters
+  names(X) <- seq_along(X)
+  expect_identical(names(bettermc::mclapply(X, function(x) x)),
+                   names(X))
 })

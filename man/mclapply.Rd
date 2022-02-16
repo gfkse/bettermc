@@ -24,6 +24,7 @@ mclapply(
   mc.cleanup = TRUE,
   mc.allow.recursive = TRUE,
   affinity.list = NULL,
+  mc.use.names = TRUE,
   mc.allow.fatal = FALSE,
   mc.allow.error = FALSE,
   mc.retry = 0L,
@@ -116,6 +117,9 @@ crash_dumps  # environment with crash dumps created by mclapply (cf. mc.dumpto)
     describes on which CPU (core or hyperthread unit) a given item is
     allowed to run, see \code{\link[parallel]{mcaffinity}}.  To use this parameter
     prescheduling has to be deactivated (\code{mc.preschedule = FALSE}).}
+
+\item{mc.use.names}{if \code{TRUE} and if \code{X} is character, use \code{X}
+as names for the result unless it had names already.}
 
 \item{mc.allow.fatal}{should fatal errors in child processes make
   \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning

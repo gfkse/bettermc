@@ -32,6 +32,8 @@
 #'   code following the call to \code{mclapply}. All this ensures that arguments
 #'   like \code{mc.cores}, \code{mc.force.fork} etc. can be adjusted without
 #'   affecting the state of the RNG outside of \code{mclapply}.
+#' @param mc.use.names if \code{TRUE} and if \code{X} is character, use \code{X}
+#'   as names for the result unless it had names already.
 #' @param mc.allow.fatal should fatal errors in child processes make
 #'   \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
 #'   (\code{TRUE})?
@@ -225,7 +227,7 @@ mclapply <- function(X, FUN, ...,
                      mc.preschedule = TRUE, mc.set.seed = NA,
                      mc.silent = FALSE, mc.cores = getOption("mc.cores", 2L),
                      mc.cleanup = TRUE, mc.allow.recursive = TRUE,
-                     affinity.list = NULL,
+                     affinity.list = NULL, mc.use.names = TRUE,
                      mc.allow.fatal = FALSE, mc.allow.error = FALSE,
                      mc.retry = 0L,
                      mc.retry.silent = FALSE,
@@ -256,11 +258,13 @@ mclapply <- function(X, FUN, ...,
   if (!length(X)) {
     res <- list()
     names(res) <- names(X)
+    if (mc.use.names && is.character(X) && is.null(names(res))) names(res) <- X
     return(res)
   }
 
   checkmate::qassert(mc.set.seed, c("b1", "n1"))
 
+  checkmate::assert_flag(mc.use.names)
   checkmate::assert_flag(mc.allow.fatal, null.ok = TRUE)
   checkmate::assert_flag(mc.allow.error)
   checkmate::assert_int(mc.retry)
@@ -860,6 +864,9 @@ mclapply <- function(X, FUN, ...,
   })
 
   names(res) <- names(X_orig)
+  if (mc.use.names && is.character(X_orig) && is.null(names(res))) {
+    names(res) <- X_orig
+  }
 
   # create crash dump; do this only here such that res is fully processed, i.e.
   # list wrappers removed, named etc.
