@@ -19,3 +19,7 @@ SEXP semaphore_close(SEXP sem) {
 SEXP semaphore_unlink(SEXP n) {
   error("Not supported on Windows.");
 }
+
+SEXP sigterm(SEXP pid) {
+  error("Not supported on Windows.");
+}

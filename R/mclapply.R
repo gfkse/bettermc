@@ -696,16 +696,31 @@ mclapply <- function(X, FUN, ...,
       for (i in seq_len(mc_fatal)) {
         sem_post(sem)
       }
+
       # suppressWarnings due to https://bugs.r-project.org/bugzilla/show_bug.cgi?id=18078:
       # we don't really mind if the progress_job was erroneously killed, but we
       # don't want to see a warning because of this;
       # if there is a warning signaled then most probably the progress process
       # was killed -> clear the incomplete line on stderr
-      withCallingHandlers(parallel::mccollect(progress_job),
-                          warning = function(w) {
-                            cat("\r", file = stderr())
-                            tryInvokeRestart("muffleWarning")
-                          })
+      #
+      # do not wait here to no block the main session in case progress_job is stuck
+      progress_job_res <-
+        withCallingHandlers(parallel::mccollect(progress_job, wait = FALSE, timeout = 1),
+                            warning = function(w) {
+                              cat("\r", file = stderr())
+                              tryInvokeRestart("muffleWarning")
+                            })
+
+      if (is.null(progress_job_res)) {
+        # progress job was not done yet -> terminate it
+        .Call(C_sigterm, progress_job[["pid"]])
+        # collect again to avoid zombie process
+        withCallingHandlers(parallel::mccollect(progress_job, wait = FALSE, timeout = 1),
+                            warning = function(w) {
+                              cat("\r", file = stderr())
+                              tryInvokeRestart("muffleWarning")
+                            })
+      }
     }
 
     if (mc.shm.ipc) {

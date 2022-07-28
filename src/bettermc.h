@@ -22,6 +22,7 @@ SEXP semaphore_post(SEXP);
 SEXP semaphore_wait(SEXP);
 SEXP semaphore_close(SEXP);
 SEXP semaphore_unlink(SEXP);
+SEXP sigterm(SEXP);
 
 SEXP semaphorev_open(SEXP);
 SEXP semaphorev_post(SEXP, SEXP);

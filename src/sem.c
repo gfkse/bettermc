@@ -89,3 +89,9 @@ SEXP semaphore_unlink(SEXP n) {
 
   return R_NilValue;
 }
+
+SEXP sigterm(SEXP pid) {
+  int p = asInteger(pid);
+  int ret = kill(p, SIGTERM);
+  return ScalarInteger(ret);
+}

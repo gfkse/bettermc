@@ -16,6 +16,7 @@ void R_init_bettermc(DllInfo *info) {
     {"semaphore_wait", (DL_FUNC) &semaphore_wait, 1},
     {"semaphore_close", (DL_FUNC) &semaphore_close, 1},
     {"semaphore_unlink", (DL_FUNC) &semaphore_unlink, 1},
+    {"sigterm", (DL_FUNC) &sigterm, 1},
     {"semaphorev_open", (DL_FUNC) &semaphorev_open, 1},
     {"semaphorev_post", (DL_FUNC) &semaphorev_post, 2},
     {"semaphorev_wait", (DL_FUNC) &semaphorev_wait, 2},
