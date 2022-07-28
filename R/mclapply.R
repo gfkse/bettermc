@@ -307,6 +307,9 @@ mclapply <- function(X, FUN, ...,
   if (mc.force.fork && mc.cores < 2L) {
     stop("'mc.force.fork' requires 'mc.cores' to be at least 2.")
   }
+  if (mc.force.fork && !mc.allow.recursive) {
+    stop("'mc.force.fork' requires 'mc.allow.recursive' to be TRUE.")
+  }
 
   checkmate::assert_flag(mc.progress)
   if (mc.progress && !requireNamespace("progress", quietly = TRUE)) {
