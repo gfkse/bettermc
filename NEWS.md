@@ -1,11 +1,12 @@
-# bettermc [v1.1.2.9000]
+# bettermc 1.1.2.9000
 
 * fix test failure if suggested *progress*-package is not available
 * add support for overloading `parallel::mclapply()` with `bettermc::mclapply()` via the [bettermcExt](https://github.com/gfkse/bettermcExt)-package on GitHub;
 this enables the use of `bettermc::mclapply()` by third-party packages originally using `mclapply()` from the *parallel*-package, e.g. *doMC* or *rstan*
 * when applying over a character vector, that vector is now - by default - used to name the (otherwise unnamed) result (argument `mc.use.names`)
+* make the format of this very file *NEWS.md* compatible with *news()*
 
-# bettermc [v1.1.2]
+# bettermc 1.1.2
 
 ## Misc
 * work around an issue in base R w.r.t. source references and lazy loading as discussed in <https://stat.ethz.ch/pipermail/r-devel/2021-April/080599.html>
@@ -13,7 +14,7 @@ this enables the use of `bettermc::mclapply()` by third-party packages originall
   * do no longer assign to `ATTRIB()` and `OBJECT()`
   * do no longer depend on `SEXPREC_ALIGN`
 
-# bettermc [v1.1.1]
+# bettermc 1.1.1
 
 ## New Features
 
@@ -39,5 +40,5 @@ Still, this allows code employing `bettermc::mclapply()`, which was originally d
 * mark memory returned by custom allocator in `allocate_from_shm()` for Valgrind as defined (cf. <https://stat.ethz.ch/pipermail/r-devel/2021-March/080572.html>)
 * fix test failure on macOS with a page size of more than 4 KiB
 
-# bettermc [v1.0.1]
+# bettermc 1.0.1
 * initial CRAN release

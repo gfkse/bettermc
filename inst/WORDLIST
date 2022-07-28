@@ -29,6 +29,7 @@ implementational
 integerish
 macOS
 mclapply
+md
 muffleMessage
 muffleWarning
 parallelization
