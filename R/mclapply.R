@@ -701,13 +701,13 @@ mclapply <- function(X, FUN, ...,
       # we don't really mind if the progress_job was erroneously killed, but we
       # don't want to see a warning because of this;
       # if there is a warning signaled then most probably the progress process
-      # was killed -> clear the incomplete line on stderr
+      # was killed -> move cursor to next line on stderr
       #
       # do not wait here to no block the main session in case progress_job is stuck
       progress_job_res <-
         withCallingHandlers(parallel::mccollect(progress_job, wait = FALSE, timeout = 1),
                             warning = function(w) {
-                              cat("\r", file = stderr())
+                              cat("\n", file = stderr())
                               tryInvokeRestart("muffleWarning")
                             })
 
@@ -717,7 +717,7 @@ mclapply <- function(X, FUN, ...,
         # collect again to avoid zombie process
         withCallingHandlers(parallel::mccollect(progress_job, wait = FALSE, timeout = 1),
                             warning = function(w) {
-                              cat("\r", file = stderr())
+                              cat("\n", file = stderr())
                               tryInvokeRestart("muffleWarning")
                             })
       }
