@@ -6,6 +6,7 @@ this enables the use of `bettermc::mclapply()` by third-party packages originall
 * when applying over a character vector, that vector is now - by default - used to name the (otherwise unnamed) result (argument `mc.use.names`)
 * avoid progress bar job blocking main process
 * make the format of this very file *NEWS.md* compatible with *news()*
+* tracebacks from `etry()` (and hence also from `mclapply()`) now contain an overview of the local variables and their values (essentially the output of `ls.str()` applied to all the frames on the call stack)
 
 # bettermc 1.1.2
 

@@ -10,6 +10,10 @@ is.uneval.promise <- function(name, env) {
   .Call(C_is_uneval_promise, name = name, env = env)
 }
 
+is.eval.promise2missing.arg <- function(name, env) {
+  .Call(C_is_eval_promise_to_missing_arg, name = name, env = env)
+}
+
 is.missing.arg <- function(name, env) {
   penv <- parent.env(env)
   on.exit(parent.env(env) <- penv)

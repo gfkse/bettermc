@@ -36,6 +36,7 @@ etry <- function(expr, silent = FALSE,
   dump.frames <- match.arg(dump.frames)
 
   TB <- NULL
+  LO <- list()
   DP <- list()
   tryCatch(
     withCallingHandlers(expr, error = function(e) {
@@ -49,6 +50,41 @@ etry <- function(expr, silent = FALSE,
         on.exit(options(opt_bak))
         TB <<- do.call(.traceback, list(x = 4L))
       }
+
+      requireNamespace("utils")  # for print.ls_str()
+      LO <<- rev(lapply(seq_along(TB), function(i) {
+        e <- sys.frame(i)
+        vars <- ls(e, all.names = TRUE)
+        is_uneval_promise <- vapply(vars, is.uneval.promise, NA, env = e)
+
+        # we need to handle evaluated promises to the missing arg explicitly
+        # because utils:::print.ls_str() fails for such objects
+        # (cf. https://stat.ethz.ch/pipermail/r-devel/2022-August/081932.html)
+        is_promise_missing_arg <- vapply(vars, is.eval.promise2missing.arg, NA, env = e)
+
+        locals <- capture.output(
+          print(structure(vars[!is_uneval_promise & !is_promise_missing_arg],
+                          envir = e, mode = "any", class = "ls_str"))
+        )
+        uneval_promises <- unlist(lapply(vars[is_uneval_promise], function(v) {
+          # keep at most 5 lines of promise code and indicate truncation
+          promise_code <- eval(parse(text = paste0("substitute(", v, ", e)")))
+          pcode <- deparse(promise_code, width.cutoff = 500L, nlines = 6L)
+          if (length(pcode) == 6L) {
+            pcode[6L] <- "..."
+          }
+          if (length(pcode) == 1L) {
+            paste0(v, " : <unevaluated promise> (", pcode, ")")
+          } else {
+            paste0(v, " : <unevaluated promise> (\n", paste0(pcode, collapse = "\n"), "\n)")
+          }
+        }))
+        missing_promises <- unlist(lapply(vars[is_promise_missing_arg], function(v) {
+          paste0(v, " : <missing>")
+        }))
+
+        c(uneval_promises, missing_promises, locals)
+      }))
 
       if (dump.frames != "no") {
         calls <- sys.calls()
@@ -79,6 +115,7 @@ etry <- function(expr, silent = FALSE,
                        class = c("etry-error", "try-error"),
                        condition = e,
                        traceback = TB,
+                       locals = LO,
                        dump.frames = DP)
 
       if (!silent && isTRUE(getOption("show.error.messages"))) {
@@ -127,6 +164,10 @@ etry <- function(expr, silent = FALSE,
         label <- c(label, rep(substr("          ", 1L,
                                      nchar(label, type = "w")), m - 1L))
       cat(paste0(label, xi), sep = "\n")
+
+      cat("\nLocal variables:\n")
+      cat(attr(x, "locals")[[i]], sep = "\n")
+      cat("\n")
     }
   }
 
@@ -134,3 +175,4 @@ etry <- function(expr, silent = FALSE,
 
   invisible()
 }
+

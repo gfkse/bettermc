@@ -30,5 +30,6 @@ SEXP semaphorev_wait(SEXP, SEXP);
 SEXP semaphorev_unlink(SEXP);
 
 SEXP is_uneval_promise(SEXP, SEXP);
+SEXP is_eval_promise_to_missing_arg(SEXP, SEXP);
 
 #endif
