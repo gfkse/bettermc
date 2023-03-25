@@ -28,7 +28,7 @@ Depends: R (>= 3.5.0)
 Imports:
     checkmate,
     parallel
-RoxygenNote: 7.2
+RoxygenNote: 7.2.3
 Suggests:
     progress,
     spelling,

@@ -103,6 +103,11 @@
 #'   "muffleWarning"/"muffleMessage" restart in the child process. Note that, if
 #'   \code{FUN} is called directly from the main process, conditions might be
 #'   signaled twice in the main process, depending on these arguments.
+#' @param mc.system.time should \code{\link{system.time}} be used to measure
+#'   CPU (and other) times used by the invocations of \code{FUN}. If
+#'   \code{TRUE}, the list returned will have an attribute "system_times", which
+#'   itself is a list of the same length as \code{X} containing the time
+#'   measurements.
 #' @param mc.compress.chars should character vectors be compressed using
 #'   \code{\link{char_map}} before returning them from the child process? Can
 #'   also be the minimum length of character vectors for which to enable
@@ -242,6 +247,7 @@ mclapply <- function(X, FUN, ...,
                      mc.messages = c("m_signal", "signal", "m_output", "output",
                                      "m_ignore", "ignore"),
                      mc.conditions = c("signal", "ignore"),
+                     mc.system.time = FALSE,
                      mc.compress.chars = TRUE,
                      mc.compress.altreps = c("if_allocated", "yes", "no"),
                      mc.share.vectors = getOption("bettermc.use_shm", TRUE),
@@ -286,6 +292,7 @@ mclapply <- function(X, FUN, ...,
     mc.messages <- sub("^m_", "", mc.messages)
   }
   mc.conditions <- match.arg(mc.conditions)
+  checkmate::assert_flag(mc.system.time)
   mc.compress.altreps <- match.arg(mc.compress.altreps)
   mc.share.altreps <- match.arg(mc.share.altreps)
 
@@ -588,23 +595,29 @@ mclapply <- function(X, FUN, ...,
       # etry-error-object
       if (mc.stdout == "capture") {
         output <- capture.output(
+          proc_time <- system.time(
+            res <- etry(withCallingHandlers(list(FUN(X, ...)),
+                                            warning = whandler,
+                                            message = mhandler,
+                                            condition = chandler),
+                        silent = TRUE,
+                        dump.frames = if (tries_left) "no" else mc.dump.frames),
+            gcFirst = FALSE
+          )
+        )
+        if (length(output)) attr(res, "bettermc_output") <- output
+      } else {
+        proc_time <- system.time(
           res <- etry(withCallingHandlers(list(FUN(X, ...)),
                                           warning = whandler,
                                           message = mhandler,
                                           condition = chandler),
                       silent = TRUE,
-                      dump.frames = if (tries_left) "no" else mc.dump.frames)
+                      dump.frames = if (tries_left) "no" else mc.dump.frames),
+          gcFirst = FALSE
         )
-        if (length(output)) attr(res, "bettermc_output") <- output
-      } else {
-        res <- etry(withCallingHandlers(list(FUN(X, ...)),
-                                        warning = whandler,
-                                        message = mhandler,
-                                        condition = chandler),
-                    silent = TRUE,
-                    dump.frames = if (tries_left) "no" else mc.dump.frames)
       }
-
+      if (mc.system.time) attr(res, "bettermc_system_time") <- proc_time
 
       # make consecutive invocations of this wrapper fail early
       if (mc.fail.early && inherits(res, "etry-error")) file.create(error_file)
@@ -856,6 +869,12 @@ mclapply <- function(X, FUN, ...,
     affinity.list <- affinity.list_orig[X_seq]
   }
 
+  system_times <- if (mc.system.time) {
+    lapply(res, attr, which = "bettermc_system_time")
+  } else {
+    NULL
+  }
+
   # remove the list()-wrapper around each (non-error) element & potentially
   # introduce explicit fatal errors;
   # also check for non-fatal and fatal errors
@@ -880,6 +899,8 @@ mclapply <- function(X, FUN, ...,
       e[[1L]]
     }
   })
+
+  attr(res, "system_times") <- system_times
 
   names(res) <- names(X_orig)
   if (mc.use.names && is.character(X_orig) && is.null(names(res))) {

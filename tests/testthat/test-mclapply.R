@@ -383,3 +383,28 @@ test_that("results are properly named", {
   expect_identical(names(bettermc::mclapply(X, function(x) x)),
                    names(X))
 })
+
+test_that("mc.system.time works", {
+  skip_on_os("windows")
+  ret <- suppressWarnings(
+    bettermc::mclapply(1:4, function(i) {
+      if (i == 3) {
+        system(sprintf("kill %d", Sys.getpid()))
+      } else if (i == 4) {
+        stop("eee")
+      } else {
+        Sys.sleep(i)
+      }
+    },
+    mc.system.time = TRUE, mc.allow.error = TRUE,
+    mc.allow.fatal = TRUE, mc.preschedule = FALSE)
+  )
+
+  ret <- attr(ret, "system_times")
+  ret <- lapply(ret, `[`, i = "elapsed")
+
+  expect_gte(ret[[1]], 1)
+  expect_gte(ret[[2]], 2)
+  expect_null(ret[[3]])
+  expect_lt(ret[[4]], 1)
+})

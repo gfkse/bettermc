@@ -38,6 +38,7 @@ mclapply(
     "stop"),
   mc.messages = c("m_signal", "signal", "m_output", "output", "m_ignore", "ignore"),
   mc.conditions = c("signal", "ignore"),
+  mc.system.time = FALSE,
   mc.compress.chars = TRUE,
   mc.compress.altreps = c("if_allocated", "yes", "no"),
   mc.share.vectors = getOption("bettermc.use_shm", TRUE),
@@ -199,6 +200,12 @@ Options prefixed with "m" additionally try to invoke the
 "muffleWarning"/"muffleMessage" restart in the child process. Note that, if
 \code{FUN} is called directly from the main process, conditions might be
 signaled twice in the main process, depending on these arguments.}
+
+\item{mc.system.time}{should \code{\link{system.time}} be used to measure
+CPU (and other) times used by the invocations of \code{FUN}. If
+\code{TRUE}, the list returned will have an attribute "system_times", which
+itself is a list of the same length as \code{X} containing the time
+measurements.}
 
 \item{mc.compress.chars}{should character vectors be compressed using
 \code{\link{char_map}} before returning them from the child process? Can
