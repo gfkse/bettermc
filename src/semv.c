@@ -70,6 +70,7 @@ SEXP semaphorev_post(SEXP sid, SEXP undo) {
 
 SEXP semaphorev_unlink(SEXP sid) {
   union semun dummy;
+  dummy.val = 0;  // ignored; just to silence a clang -Wuninitialized
 
   int semid = asInteger(sid);
 

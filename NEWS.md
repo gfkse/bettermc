@@ -7,6 +7,7 @@ this enables the use of `bettermc::mclapply()` by third-party packages originall
 * avoid progress bar job blocking main process
 * make the format of this very file *NEWS.md* compatible with *news()*
 * tracebacks from `etry()` (and hence also from `mclapply()`) now contain an overview of the local variables and their values (essentially the output of `ls.str()` applied to all the frames on the call stack)
+* avoid a superfluous clang -Wuninitialized as requested by CRAN
 
 # bettermc 1.1.2
 
