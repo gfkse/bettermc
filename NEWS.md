@@ -9,6 +9,7 @@ this enables the use of `bettermc::mclapply()` by third-party packages originall
 * tracebacks from `etry()` (and hence also from `mclapply()`) now contain an overview of the local variables and their values (essentially the output of `ls.str()` applied to all the frames on the call stack)
 * avoid a superfluous clang -Wuninitialized as requested by CRAN
 * new argument `mc.system.time` to `mclapply()`: if `TRUE` measure and return the CPU (and other) times used by the invocations of `FUN`.
+* the formal arguments `mc.allow.fatal` and `mc.allow.error` to `mclapply()` gain a new valid value: `NA`, which is the same as `TRUE`, but suppresses the warnings which would normally signal that there was a (fatal) error.
 
 # bettermc 1.1.2
 

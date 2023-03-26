@@ -30,7 +30,7 @@ mclapply(
   mc.retry = 0L,
   mc.retry.silent = FALSE,
   mc.retry.fixed.seed = FALSE,
-  mc.fail.early = !(mc.allow.error || mc.retry != 0L),
+  mc.fail.early = isFALSE(mc.allow.error) && mc.retry == 0L,
   mc.dump.frames = c("partial", "full", "full_global", "no"),
   mc.dumpto = ifelse(interactive(), "last.dump", "file://last.dump.rds"),
   mc.stdout = c("capture", "output", "ignore"),
@@ -131,8 +131,10 @@ as names for the result unless it had names already.}
   \code{\link[parallel:mclapply]{parallel::mclapply}}, it is OK for
   \code{FUN} to return \code{NULL}.
 
+  \code{NA} returns the same as \code{TRUE}, but without a warning.
+
   \code{mc.allow.fatal} can also be \code{NULL}. In this case \code{NULL} is
-  returned, which corresponds to the behavior of
+  returned (and a warning is signaled), which corresponds to the behavior of
   \code{\link[parallel:mclapply]{parallel::mclapply}}.}
 
 \item{mc.allow.error}{should non-fatal errors in \code{FUN} make
@@ -140,7 +142,8 @@ as names for the result unless it had names already.}
 (\code{TRUE})? In the latter case, errors are stored as class
 \code{c("etry-error", "try-error")} objects, which contain full tracebacks
 and potentially crash dumps (c.f. \code{mc.dump.frames} and
-\code{\link{etry}}).}
+\code{\link{etry}}). \code{NA} returns the same as \code{TRUE}, but without
+a warning.}
 
 \item{mc.retry}{\code{abs(mc.retry)} is the maximum number of retries of
   failed applications of \code{FUN} in case of both fatal and non-fatal

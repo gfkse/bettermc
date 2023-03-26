@@ -43,15 +43,18 @@
 #'   \code{\link[parallel:mclapply]{parallel::mclapply}}, it is OK for
 #'   \code{FUN} to return \code{NULL}.
 #'
+#'   \code{NA} returns the same as \code{TRUE}, but without a warning.
+#'
 #'   \code{mc.allow.fatal} can also be \code{NULL}. In this case \code{NULL} is
-#'   returned, which corresponds to the behavior of
+#'   returned (and a warning is signaled), which corresponds to the behavior of
 #'   \code{\link[parallel:mclapply]{parallel::mclapply}}.
 #' @param mc.allow.error should non-fatal errors in \code{FUN} make
 #'   \code{mclapply} fail (\code{FALSE}, default) or merely trigger a warning
 #'   (\code{TRUE})? In the latter case, errors are stored as class
 #'   \code{c("etry-error", "try-error")} objects, which contain full tracebacks
 #'   and potentially crash dumps (c.f. \code{mc.dump.frames} and
-#'   \code{\link{etry}}).
+#'   \code{\link{etry}}). \code{NA} returns the same as \code{TRUE}, but without
+#'   a warning.
 #' @param mc.retry \code{abs(mc.retry)} is the maximum number of retries of
 #'   failed applications of \code{FUN} in case of both fatal and non-fatal
 #'   errors. This is useful if we expect \code{FUN} to fail either randomly
@@ -237,7 +240,7 @@ mclapply <- function(X, FUN, ...,
                      mc.retry = 0L,
                      mc.retry.silent = FALSE,
                      mc.retry.fixed.seed = FALSE,
-                     mc.fail.early = !(mc.allow.error || mc.retry != 0L),
+                     mc.fail.early = isFALSE(mc.allow.error) && mc.retry == 0L,
                      mc.dump.frames = c("partial", "full", "full_global", "no"),
                      mc.dumpto = ifelse(interactive(), "last.dump",
                                         "file://last.dump.rds"),
@@ -271,8 +274,8 @@ mclapply <- function(X, FUN, ...,
   checkmate::qassert(mc.set.seed, c("b1", "n1"))
 
   checkmate::assert_flag(mc.use.names)
-  checkmate::assert_flag(mc.allow.fatal, null.ok = TRUE)
-  checkmate::assert_flag(mc.allow.error)
+  checkmate::assert_flag(mc.allow.fatal, na.ok = TRUE, null.ok = TRUE)
+  checkmate::assert_flag(mc.allow.error, na.ok = TRUE)
   checkmate::assert_int(mc.retry)
   checkmate::assert_flag(mc.retry.silent)
   checkmate::assert_flag(mc.retry.fixed.seed)
@@ -909,7 +912,7 @@ mclapply <- function(X, FUN, ...,
 
   # create crash dump; do this only here such that res is fully processed, i.e.
   # list wrappers removed, named etc.
-  if (error_idx && !mc.allow.error && mc.dump.frames != "no") {
+  if (error_idx && isFALSE(mc.allow.error) && mc.dump.frames != "no") {
     if (grepl("^file://", mc.dumpto)) {
       file <- gsub("^file://", "", mc.dumpto)
       if (inherits(try(saveRDS(res, file)), "try-error")) {
@@ -941,9 +944,9 @@ mclapply <- function(X, FUN, ...,
     msg <- "at least one scheduled core did not return results;" %\%
       "maybe it was killed (by the Linux Out of Memory Killer ?) or there" %\%
       "was a fatal error in the forked process(es)"
-    if (!isFALSE(mc.allow.fatal)) {
+    if (is.null(mc.allow.fatal) || isTRUE(mc.allow.fatal)) {
       w_list <- c(w_list, list(msg))
-    } else {
+    } else if (isFALSE(mc.allow.fatal)) {
       e_list <- c(e_list, list(msg))
     }
   }
@@ -952,9 +955,9 @@ mclapply <- function(X, FUN, ...,
     orig_message <- res[[error_idx]]
     msg <- "error(s) occured during mclapply; first original message:\n\n" %+%
       paste0(capture.output(orig_message), collapse = "\n")
-    if (mc.allow.error) {
+    if (isTRUE(mc.allow.error)) {
       w_list <- c(w_list, list(msg))
-    } else {
+    } else if (isFALSE(mc.allow.error)) {
       e_list <- c(e_list, list(msg))
     }
   }
