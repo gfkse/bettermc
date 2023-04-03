@@ -1,15 +1,20 @@
-# bettermc 1.1.2.9000
+# bettermc 1.2.0
 
-* fix test failure if suggested *progress*-package is not available
+## New Features
 * add support for overloading `parallel::mclapply()` with `bettermc::mclapply()` via the [bettermcExt](https://github.com/gfkse/bettermcExt)-package on GitHub;
 this enables the use of `bettermc::mclapply()` by third-party packages originally using `mclapply()` from the *parallel*-package, e.g. *doMC* or *rstan*
 * when applying over a character vector, that vector is now - by default - used to name the (otherwise unnamed) result (argument `mc.use.names`)
-* avoid progress bar job blocking main process
-* make the format of this very file *NEWS.md* compatible with *news()*
 * tracebacks from `etry()` (and hence also from `mclapply()`) now contain an overview of the local variables and their values (essentially the output of `ls.str()` applied to all the frames on the call stack)
+* new argument `mc.system.time` to `mclapply()`: if `TRUE` measure and return the CPU (and other) times used by the invocations of `FUN`
+* the formal arguments `mc.allow.fatal` and `mc.allow.error` to `mclapply()` gain a new valid value: `NA`, which is the same as `TRUE`, but suppresses the warnings which would normally signal that there was a (fatal) error
+
+## Bug Fixes
+* fix test failure if suggested *progress*-package is not available
+* avoid progress bar job blocking main process
+
+## Misc
+* make the format of this very file *NEWS.md* compatible with *news()*
 * avoid a superfluous clang -Wuninitialized as requested by CRAN
-* new argument `mc.system.time` to `mclapply()`: if `TRUE` measure and return the CPU (and other) times used by the invocations of `FUN`.
-* the formal arguments `mc.allow.fatal` and `mc.allow.error` to `mclapply()` gain a new valid value: `NA`, which is the same as `TRUE`, but suppresses the warnings which would normally signal that there was a (fatal) error.
 
 # bettermc 1.1.2
 
