@@ -1,6 +1,16 @@
 #define _GNU_SOURCE
-
 #include "bettermc.h"
+
+SEXP is_altrep(SEXP x) {
+  return ScalarLogical(ALTREP(x));
+}
+
+SEXP is_allocated(SEXP x) {
+  return ScalarLogical(DATAPTR_OR_NULL(x) != NULL);
+}
+
+#ifndef _WIN32
+
 #include <R_ext/Rallocators.h>
 #include <R_ext/Altrep.h>
 #include <stdlib.h>
@@ -325,15 +335,6 @@ SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
   return ret;
 }
 
-SEXP is_altrep(SEXP x) {
-  return ScalarLogical(ALTREP(x));
-}
-
-SEXP is_allocated(SEXP x) {
-  return ScalarLogical(DATAPTR_OR_NULL(x) != NULL);
-}
-
-
 SEXP unlink_all_shm(SEXP prefix, SEXP start) {
   const char *pre = CHAR(STRING_ELT(prefix, 0));
   int pre_len = strlen(pre);
@@ -356,3 +357,20 @@ SEXP unlink_all_shm(SEXP prefix, SEXP start) {
 
   return R_NilValue;
 }
+
+#else
+
+SEXP copy2shm(SEXP x, SEXP n, SEXP overwrite, SEXP huge_threshold) {
+  error("Not supported on Windows.");
+}
+
+SEXP allocate_from_shm(SEXP name, SEXP type, SEXP length, SEXP size,
+                       SEXP attributes, SEXP copy) {
+  error("Not supported on Windows.");
+}
+
+SEXP unlink_all_shm(SEXP prefix, SEXP start) {
+  error("Not supported on Windows.");
+}
+
+#endif

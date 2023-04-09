@@ -1,7 +1,3 @@
 #!/bin/sh
 
-cp src/copy2shm.c.windows src/copy2shm.c
-cp src/sem.c.windows src/sem.c
-cp src/semv.c.windows src/semv.c
-
 sed -i 's/\\link\[parallel]{mcaffinity}/mcaffinity/' man/mclapply.Rd

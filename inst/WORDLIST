@@ -21,9 +21,7 @@ de
 deserialized
 dev
 doMC
-ethz
 etry
-https
 hyperthread
 idx
 implementational
@@ -34,7 +32,6 @@ md
 muffleMessage
 muffleWarning
 parallelization
-pipermail
 prescheduling
 radix
 rchk
@@ -44,6 +41,7 @@ sem
 semv
 shm
 sinked
+src
 stderr
 stdout
 tmpfs

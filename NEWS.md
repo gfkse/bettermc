@@ -1,4 +1,4 @@
-# bettermc 1.2.0
+# bettermc 1.2.1
 
 ## New Features
 * add support for overloading `parallel::mclapply()` with `bettermc::mclapply()` via the [bettermcExt](https://github.com/gfkse/bettermcExt)-package on GitHub;
@@ -15,6 +15,7 @@ this enables the use of `bettermc::mclapply()` by third-party packages originall
 ## Misc
 * make the format of this very file *NEWS.md* compatible with *news()*
 * avoid a superfluous clang -Wuninitialized as requested by CRAN
+* avoid a CRAN warning regarding "unlikely file names for src files"
 
 # bettermc 1.1.2
 

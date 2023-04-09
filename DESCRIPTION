@@ -1,7 +1,7 @@
 Package: bettermc
 Title: Enhanced Fork-Based Parallelization
-Version: 1.2.0
-Date: 2023-04-03
+Version: 1.2.1
+Date: 2023-04-09
 Authors@R: 
     c(person(given = "Andreas",
             family = "Kersting",

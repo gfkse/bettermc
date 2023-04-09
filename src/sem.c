@@ -1,6 +1,8 @@
 #define _GNU_SOURCE
-
 #include "bettermc.h"
+
+#ifndef _WIN32
+
 #include <stdlib.h>
 #include <semaphore.h>
 #include <fcntl.h>
@@ -95,3 +97,31 @@ SEXP sigterm(SEXP pid) {
   int ret = kill(p, SIGTERM);
   return ScalarInteger(ret);
 }
+
+#else
+
+SEXP semaphore_open(SEXP n, SEXP create, SEXP overwrite, SEXP value) {
+  error("Not supported on Windows.");
+}
+
+SEXP semaphore_post(SEXP sem) {
+  error("Not supported on Windows.");
+}
+
+SEXP semaphore_wait(SEXP sem) {
+  error("Not supported on Windows.");
+}
+
+SEXP semaphore_close(SEXP sem) {
+  error("Not supported on Windows.");
+}
+
+SEXP semaphore_unlink(SEXP n) {
+  error("Not supported on Windows.");
+}
+
+SEXP sigterm(SEXP pid) {
+  error("Not supported on Windows.");
+}
+
+#endif
