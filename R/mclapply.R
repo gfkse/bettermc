@@ -111,6 +111,8 @@
 #'   \code{TRUE}, the list returned will have an attribute "system_times", which
 #'   itself is a list of the same length as \code{X} containing the time
 #'   measurements.
+#' @param mc.timeout number of seconds after which a child process should be
+#'   killed.
 #' @param mc.compress.chars should character vectors be compressed using
 #'   \code{\link{char_map}} before returning them from the child process? Can
 #'   also be the minimum length of character vectors for which to enable
@@ -251,6 +253,7 @@ mclapply <- function(X, FUN, ...,
                                      "m_ignore", "ignore"),
                      mc.conditions = c("signal", "ignore"),
                      mc.system.time = FALSE,
+                     mc.timeout = Inf,
                      mc.compress.chars = TRUE,
                      mc.compress.altreps = c("if_allocated", "yes", "no"),
                      mc.share.vectors = getOption("bettermc.use_shm", TRUE),
@@ -296,6 +299,7 @@ mclapply <- function(X, FUN, ...,
   }
   mc.conditions <- match.arg(mc.conditions)
   checkmate::assert_flag(mc.system.time)
+  checkmate::assert_number(mc.timeout, lower = 0)
   mc.compress.altreps <- match.arg(mc.compress.altreps)
   mc.share.altreps <- match.arg(mc.share.altreps)
 
@@ -334,6 +338,7 @@ mclapply <- function(X, FUN, ...,
 
   if (OSTYPE == "windows") {
     mc.cores <- 1L
+    mc.timeout <- Inf
     mc.share.vectors <- Inf
     mc.shm.ipc <- FALSE
     mc.force.fork <- FALSE
@@ -483,6 +488,17 @@ mclapply <- function(X, FUN, ...,
                     class = c("fail-early-error", "try-error"),
                     condition = cond)
         )
+      }
+
+      if (mc.timeout < Inf) {
+        pid <- Sys.getpid()
+
+        timeout_job <- parallel::mcparallel({
+          Sys.sleep(mc.timeout)
+          .Call(C_sigterm, pid)
+        }, detached = TRUE)
+
+        on.exit(.Call(C_sigterm, timeout_job[["pid"]]), add = TRUE)
       }
 
       if (!is.null(seeds)) {

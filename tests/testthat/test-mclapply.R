@@ -408,3 +408,13 @@ test_that("mc.system.time works", {
   expect_null(ret[[3]])
   expect_lt(ret[[4]], 1)
 })
+
+test_that("mc.timeout works", {
+  skip_on_os("windows")
+  res <- bettermc::mclapply(c(0, 4), function(i) Sys.sleep(i),
+                            mc.timeout = 2, mc.allow.fatal = NA,
+                            mc.preschedule = FALSE)
+  timed_out <- sapply(res, inherits, what = "fatal-error")
+  expect_false(timed_out[1])
+  expect_true(timed_out[2])
+})

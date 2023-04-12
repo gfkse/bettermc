@@ -39,6 +39,7 @@ mclapply(
   mc.messages = c("m_signal", "signal", "m_output", "output", "m_ignore", "ignore"),
   mc.conditions = c("signal", "ignore"),
   mc.system.time = FALSE,
+  mc.timeout = Inf,
   mc.compress.chars = TRUE,
   mc.compress.altreps = c("if_allocated", "yes", "no"),
   mc.share.vectors = getOption("bettermc.use_shm", TRUE),
@@ -209,6 +210,9 @@ CPU (and other) times used by the invocations of \code{FUN}. If
 \code{TRUE}, the list returned will have an attribute "system_times", which
 itself is a list of the same length as \code{X} containing the time
 measurements.}
+
+\item{mc.timeout}{number of seconds after which a child process should be
+killed.}
 
 \item{mc.compress.chars}{should character vectors be compressed using
 \code{\link{char_map}} before returning them from the child process? Can
