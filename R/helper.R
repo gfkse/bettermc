@@ -30,3 +30,14 @@ make_root_warning <- function(call = sys.call(-1L)) {
   force(call)
   function(...) warning(simpleWarning(paste0(..., collapse = ""), call = call))
 }
+
+set_timeout <- function(timeout, type = c("elapsed", "cpu"), signal = 2L) {
+  type <- match.arg(type)
+  .Call(C_set_timeout, seconds = as.integer(timeout),
+        clock_type = match(type, c("elapsed", "cpu")),
+        signal = as.integer(signal))
+}
+
+disable_timeout <- function(timerid) {
+  invisible(.Call(C_disable_timeout, timerid = timerid))
+}

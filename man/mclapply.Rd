@@ -39,6 +39,9 @@ mclapply(
   mc.messages = c("m_signal", "signal", "m_output", "output", "m_ignore", "ignore"),
   mc.conditions = c("signal", "ignore"),
   mc.system.time = FALSE,
+  mc.timeout.elapsed = Inf,
+  mc.timeout.cpu = Inf,
+  mc.timeout.signal = c("SIGTERM", "SIGKILL", "SIGABRT", "SIGINT"),
   mc.compress.chars = TRUE,
   mc.compress.altreps = c("if_allocated", "yes", "no"),
   mc.share.vectors = getOption("bettermc.use_shm", TRUE),
@@ -204,11 +207,24 @@ Options prefixed with "m" additionally try to invoke the
 \code{FUN} is called directly from the main process, conditions might be
 signaled twice in the main process, depending on these arguments.}
 
-\item{mc.system.time}{should \code{\link{system.time}} be used to measure
-CPU (and other) times used by the invocations of \code{FUN}. If
-\code{TRUE}, the list returned will have an attribute "system_times", which
-itself is a list of the same length as \code{X} containing the time
-measurements.}
+\item{mc.system.time}{should \code{\link{system.time}} be used to measure CPU
+(and other) times used by the invocations of \code{FUN}. If \code{TRUE},
+the list returned will have an attribute "system_times", which itself is a
+list of the same length as \code{X} containing the time measurements.}
+
+\item{mc.timeout.elapsed, mc.timeout.cpu}{(Linux only) number of seconds of
+elapsed/CPU time after which \code{mc.timeout.signal} should be send to the
+child process. If \code{mc.preschedule = TRUE}, the timer is reset before
+every function invocation in the child process.}
+
+\item{mc.timeout.signal}{(Linux only) the signal to send to the child process
+in case of a timeout. Can be one of SIGTERM, SIGKILL, SIGABRT and SIGINT or
+the numeric value of (any) signal. If the signal abnormally terminates the
+process, this is equivalent to a fatal error occurring (cf.
+\code{mc.allow.fatal}). SIGINT causes a non-fatal error (cf.
+\code{mc.allow.error}) of classes \code{c("interrupt-error", "try-error")}.
+Whether or not a SIGINT is processed in a timely manner depends on the code
+being executed.}
 
 \item{mc.compress.chars}{should character vectors be compressed using
 \code{\link{char_map}} before returning them from the child process? Can

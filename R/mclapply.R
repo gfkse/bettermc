@@ -106,11 +106,22 @@
 #'   "muffleWarning"/"muffleMessage" restart in the child process. Note that, if
 #'   \code{FUN} is called directly from the main process, conditions might be
 #'   signaled twice in the main process, depending on these arguments.
-#' @param mc.system.time should \code{\link{system.time}} be used to measure
-#'   CPU (and other) times used by the invocations of \code{FUN}. If
-#'   \code{TRUE}, the list returned will have an attribute "system_times", which
-#'   itself is a list of the same length as \code{X} containing the time
-#'   measurements.
+#' @param mc.system.time should \code{\link{system.time}} be used to measure CPU
+#'   (and other) times used by the invocations of \code{FUN}. If \code{TRUE},
+#'   the list returned will have an attribute "system_times", which itself is a
+#'   list of the same length as \code{X} containing the time measurements.
+#' @param mc.timeout.elapsed,mc.timeout.cpu (Linux only) number of seconds of
+#'   elapsed/CPU time after which \code{mc.timeout.signal} should be send to the
+#'   child process. If \code{mc.preschedule = TRUE}, the timer is reset before
+#'   every function invocation in the child process.
+#' @param mc.timeout.signal (Linux only) the signal to send to the child process
+#'   in case of a timeout. Can be one of SIGTERM, SIGKILL, SIGABRT and SIGINT or
+#'   the numeric value of (any) signal. If the signal abnormally terminates the
+#'   process, this is equivalent to a fatal error occurring (cf.
+#'   \code{mc.allow.fatal}). SIGINT causes a non-fatal error (cf.
+#'   \code{mc.allow.error}) of classes \code{c("interrupt-error", "try-error")}.
+#'   Whether or not a SIGINT is processed in a timely manner depends on the code
+#'   being executed.
 #' @param mc.compress.chars should character vectors be compressed using
 #'   \code{\link{char_map}} before returning them from the child process? Can
 #'   also be the minimum length of character vectors for which to enable
@@ -251,6 +262,9 @@ mclapply <- function(X, FUN, ...,
                                      "m_ignore", "ignore"),
                      mc.conditions = c("signal", "ignore"),
                      mc.system.time = FALSE,
+                     mc.timeout.elapsed = Inf,
+                     mc.timeout.cpu = Inf,
+                     mc.timeout.signal = c("SIGTERM", "SIGKILL", "SIGABRT", "SIGINT"),
                      mc.compress.chars = TRUE,
                      mc.compress.altreps = c("if_allocated", "yes", "no"),
                      mc.share.vectors = getOption("bettermc.use_shm", TRUE),
@@ -296,6 +310,18 @@ mclapply <- function(X, FUN, ...,
   }
   mc.conditions <- match.arg(mc.conditions)
   checkmate::assert_flag(mc.system.time)
+  checkmate::assert_number(mc.timeout.elapsed, lower = 1)
+  checkmate::assert_number(mc.timeout.cpu, lower = 1)
+  if (is.character(mc.timeout.signal)) {
+    mc.timeout.signal <- match.arg(mc.timeout.signal)
+    mc.timeout.signal <- switch(mc.timeout.signal,
+                                SIGTERM = 15L,
+                                SIGKILL =  9L,
+                                SIGABRT =  6L,
+                                SIGINT  =  2L)
+  }
+  checkmate::assert_int(mc.timeout.signal, lower = 1, upper = 64)
+
   mc.compress.altreps <- match.arg(mc.compress.altreps)
   mc.share.altreps <- match.arg(mc.share.altreps)
 
@@ -341,6 +367,11 @@ mclapply <- function(X, FUN, ...,
     if (mc.stdout == "output") mc.stdout <- "ignore"
     if (mc.warnings == "output") mc.warnings <- "ignore"
     if (mc.messages == "output") mc.messages <- "ignore"
+  }
+
+  if (OSTYPE != "linux") {
+    mc.timeout.elapsed <- Inf
+    mc.timeout.cpu <- Inf
   }
 
   FUN <- force(FUN)
@@ -596,8 +627,31 @@ mclapply <- function(X, FUN, ...,
       # evaluate FUN and handle errors (etry), warnings and messages;
       # res is always a one-element list except in case of error when it is an
       # etry-error-object
-      if (mc.stdout == "capture") {
-        output <- capture.output(
+      res <- tryCatch({
+        if (mc.timeout.elapsed < Inf) {
+          timerid_elapsed <- set_timeout(mc.timeout.elapsed, "elapsed", mc.timeout.signal)
+          on.exit(disable_timeout(timerid_elapsed), add = TRUE)
+        }
+        if (mc.timeout.cpu < Inf) {
+          timerid_cpu <- set_timeout(mc.timeout.cpu, "cpu", mc.timeout.signal)
+          on.exit(disable_timeout(timerid_cpu), add = TRUE)
+        }
+
+        res <- if (mc.stdout == "capture") {
+          output <- capture.output(
+            proc_time <- system.time(
+              res <- etry(withCallingHandlers(list(FUN(X, ...)),
+                                              warning = whandler,
+                                              message = mhandler,
+                                              condition = chandler),
+                          silent = TRUE,
+                          dump.frames = if (tries_left) "no" else mc.dump.frames),
+              gcFirst = FALSE
+            )
+          )
+          if (length(output)) attr(res, "bettermc_output") <- output
+          res
+        } else {
           proc_time <- system.time(
             res <- etry(withCallingHandlers(list(FUN(X, ...)),
                                             warning = whandler,
@@ -607,19 +661,25 @@ mclapply <- function(X, FUN, ...,
                         dump.frames = if (tries_left) "no" else mc.dump.frames),
             gcFirst = FALSE
           )
-        )
-        if (length(output)) attr(res, "bettermc_output") <- output
-      } else {
-        proc_time <- system.time(
-          res <- etry(withCallingHandlers(list(FUN(X, ...)),
-                                          warning = whandler,
-                                          message = mhandler,
-                                          condition = chandler),
-                      silent = TRUE,
-                      dump.frames = if (tries_left) "no" else mc.dump.frames),
-          gcFirst = FALSE
-        )
-      }
+          res
+        }
+
+        if (mc.timeout.elapsed < Inf) disable_timeout(timerid_elapsed)
+        if (mc.timeout.cpu < Inf) disable_timeout(timerid_cpu)
+
+        res
+      }, interrupt = function(cond) {
+        # FIXME: potential race condition here
+        if (mc.timeout.elapsed < Inf) disable_timeout(timerid_elapsed)
+        if (mc.timeout.cpu < Inf) disable_timeout(timerid_cpu)
+
+        cond <- simpleError("interrupt detected")
+
+        structure(conditionMessage(cond),
+                  class = c("interrupt-error", "try-error"),
+                  condition = cond)
+      })
+
       if (mc.system.time) attr(res, "bettermc_system_time") <- proc_time
 
       # make consecutive invocations of this wrapper fail early
@@ -695,7 +755,8 @@ mclapply <- function(X, FUN, ...,
     if (any(wrapper_error <-
             vapply(res, inherits, logical(1L), what = "try-error") &
             !vapply(res, inherits, logical(1L), what = c("etry-error",
-                                                         "fail-early-error")))) {
+                                                         "fail-early-error",
+                                                         "interrup-error")))) {
       orig_message <- res[[which(wrapper_error)[1]]]
       msg <- "error in bettermc wrapper code; first original message:\n\n" %+%
         paste0(capture.output(orig_message), collapse = "\n")

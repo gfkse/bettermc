@@ -408,3 +408,29 @@ test_that("mc.system.time works", {
   expect_null(ret[[3]])
   expect_lt(ret[[4]], 1)
 })
+
+test_that("mc.timeout.elapsed works", {
+  skip_on_cran()
+  skip_on_os("windows")
+  skip_on_os("mac")
+  skip_on_os("solaris")
+  res <- bettermc::mclapply(c(0, 4), function(i) Sys.sleep(i),
+                            mc.timeout.elapsed = 2, mc.allow.fatal = NA,
+                            mc.preschedule = FALSE)
+  timed_out <- sapply(res, inherits, what = "fatal-error")
+  expect_false(timed_out[1])
+  expect_true(timed_out[2])
+})
+
+test_that("mc.timeout.cpu works", {
+  skip_on_cran()
+  skip_on_os("windows")
+  skip_on_os("mac")
+  skip_on_os("solaris")
+  res <- bettermc::mclapply(c(1, 2), function(i) if (i > 1) while (TRUE) 1 + 1,
+                            mc.timeout.cpu = 2, mc.allow.error = NA,
+                            mc.timeout.signal = "SIGINT", mc.preschedule = FALSE)
+  timed_out <- sapply(res, inherits, what = "interrupt-error")
+  expect_false(timed_out[1])
+  expect_true(timed_out[2])
+})

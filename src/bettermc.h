@@ -32,4 +32,7 @@ SEXP semaphorev_unlink(SEXP);
 SEXP is_uneval_promise(SEXP, SEXP);
 SEXP is_eval_promise_to_missing_arg(SEXP, SEXP);
 
+SEXP set_timeout(SEXP, SEXP, SEXP);
+SEXP disable_timeout(SEXP);
+
 #endif

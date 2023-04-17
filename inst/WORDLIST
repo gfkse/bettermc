@@ -8,6 +8,10 @@ Lifecycle
 MiB
 Parallelization
 Rinternals
+SIGABRT
+SIGINT
+SIGKILL
+SIGTERM
 Tracebacks
 UX
 Valgrind
