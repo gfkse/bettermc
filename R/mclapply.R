@@ -525,7 +525,7 @@ mclapply <- function(X, FUN, ...,
       }
 
       if (!is.null(mc.cpu.pool)) {
-        semv_wait(mc.cpu.pool, )
+        semv_wait(mc.cpu.pool)
         on.exit(semv_post(mc.cpu.pool), add = TRUE)
       }
 
