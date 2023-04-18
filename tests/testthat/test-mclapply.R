@@ -434,3 +434,25 @@ test_that("mc.timeout.cpu works", {
   expect_false(timed_out[1])
   expect_true(timed_out[2])
 })
+
+test_that("mc.cpu.pool works", {
+  skip_on_cran()
+  skip_on_os("windows")
+
+  cpu_pool <- create_cpu_pool(1)
+
+  t <- system.time(
+    mclapply(1:2, function(i) {
+
+      mclapply(1:2, function(j) {
+        Sys.sleep(1)
+        if (j == 1) system(sprintf("kill %d", Sys.getpid()))
+      }, mc.cores = 2,mc.cpu.pool = cpu_pool, mc.allow.fatal = NA)
+
+    }, mc.cores = 2)
+  )
+
+  destroy_cpu_pool(cpu_pool)
+
+  expect_gte(t["elapsed"], 4)
+})

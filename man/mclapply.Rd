@@ -42,6 +42,7 @@ mclapply(
   mc.timeout.elapsed = Inf,
   mc.timeout.cpu = Inf,
   mc.timeout.signal = c("SIGTERM", "SIGKILL", "SIGABRT", "SIGINT"),
+  mc.cpu.pool = NULL,
   mc.compress.chars = TRUE,
   mc.compress.altreps = c("if_allocated", "yes", "no"),
   mc.share.vectors = getOption("bettermc.use_shm", TRUE),
@@ -225,6 +226,12 @@ process, this is equivalent to a fatal error occurring (cf.
 \code{mc.allow.error}) of classes \code{c("interrupt-error", "try-error")}.
 Whether or not a SIGINT is processed in a timely manner depends on the code
 being executed.}
+
+\item{mc.cpu.pool}{an object as returned by \code{\link{create_cpu_pool}}. An
+execution of \code{FUN} will only start after acquiring one CPU unit from
+the pool, which it will release again after returning. This feature can be
+used to control the \emph{total} number of running child processes in
+settings of (complex) nested parallelization.}
 
 \item{mc.compress.chars}{should character vectors be compressed using
 \code{\link{char_map}} before returning them from the child process? Can
