@@ -21,7 +21,7 @@
 #'   The number of calls in a process to \code{prio_queue_release} must not
 #'   exceed the number of previous call to \code{prio_queue_insert}. Otherwise
 #'   undefined behavior results. Calls to \code{prio_queue_release} might be
-#'   omitted. In this, case release of previously claimed but not yet released
+#'   omitted. In this case, release of previously claimed but not yet released
 #'   CPU units happens on process termination.
 #'
 #' @details The core of the queue is implemented using a set of \code{nprio + 1}
