@@ -11,7 +11,6 @@
 #include <sys/stat.h>
 #include <semaphore.h>
 #include <sys/mman.h>
-#include <unistd.h>
 #include <signal.h>
 #include <time.h>
 
