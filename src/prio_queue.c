@@ -14,6 +14,11 @@
 #include <signal.h>
 #include <time.h>
 
+#include <R_ext/libextern.h>
+LibExtern Rboolean R_interrupts_suspended;
+LibExtern int R_interrupts_pending;
+extern void Rf_onintr(void);
+
 union semun {
   int                 val;
   struct semid_ds *   buf;
@@ -53,7 +58,7 @@ SEXP prio_queue_create(SEXP ncpu, SEXP nprio, SEXP seconds) {
 #ifdef __linux__
   // POSIX sem - for the initial blocking
   sem_t *sem_p = (sem_t *) mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-  if (sem_p== MAP_FAILED) {
+  if (sem_p == MAP_FAILED) {
     error("'mmap' failed with '%s'", strerror(errno));
   }
 
@@ -106,6 +111,8 @@ SEXP prio_queue_insert(SEXP sid, SEXP sem, SEXP prio) {
   int semid = asInteger(sid);
   int priority = asInteger(prio);
 
+  Rboolean __oldsusp__ = R_interrupts_suspended;
+
   // insert into queue
   struct sembuf sop;
 
@@ -133,7 +140,20 @@ SEXP prio_queue_insert(SEXP sid, SEXP sem, SEXP prio) {
 
     nanosleep(&ts, NULL);
 
+    R_interrupts_suspended = TRUE;
     R_CheckUserInterrupt();
+    R_interrupts_suspended = __oldsusp__;
+
+    if (R_interrupts_pending && ! R_interrupts_suspended) {
+      sop.sem_op = -1;
+
+      // this should never block and hence fail with EINTR
+      if (semop(semid, &sop, 1) == -1) {
+        error("'semop' failed with '%s'", strerror(errno));
+      }
+
+      Rf_onintr();
+    }
   }
 #endif
 
@@ -158,7 +178,21 @@ SEXP prio_queue_insert(SEXP sid, SEXP sem, SEXP prio) {
     if (errno != EINTR) {
       error("'semop' failed with '%s'", strerror(errno));
     }
+
+    R_interrupts_suspended = TRUE;
     R_CheckUserInterrupt();
+    R_interrupts_suspended = __oldsusp__;
+
+    if (R_interrupts_pending && ! R_interrupts_suspended) {
+      sop.sem_op = -1;
+
+      // this should never block and hence fail with EINTR
+      if (semop(semid, &sop, 1) == -1) {
+        error("'semop' failed with '%s'", strerror(errno));
+      }
+
+      Rf_onintr();
+    }
   }
 
   return R_NilValue;
