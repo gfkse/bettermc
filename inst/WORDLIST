@@ -8,6 +8,7 @@ Lifecycle
 MiB
 Parallelization
 Rinternals
+SEMVMX
 SIGABRT
 SIGINT
 SIGKILL

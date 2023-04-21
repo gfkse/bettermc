@@ -35,4 +35,9 @@ SEXP is_eval_promise_to_missing_arg(SEXP, SEXP);
 SEXP set_timeout(SEXP, SEXP, SEXP);
 SEXP disable_timeout(SEXP);
 
+SEXP prio_queue_create(SEXP, SEXP, SEXP);
+SEXP prio_queue_insert(SEXP, SEXP, SEXP);
+SEXP prio_queue_release(SEXP);
+SEXP prio_queue_destroy(SEXP, SEXP, SEXP);
+
 #endif

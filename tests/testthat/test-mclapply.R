@@ -456,3 +456,25 @@ test_that("mc.cpu.pool works", {
 
   expect_gte(t["elapsed"], 4)
 })
+
+test_that("mc.prio.queue works", {
+  skip_on_cran()
+  skip_on_os("windows")
+
+  pq <- prio_queue_create(1)
+
+  t <- system.time(
+    mclapply(1:2, function(i) {
+
+      mclapply(1:2, function(j) {
+        Sys.sleep(1)
+        if (j == 1) system(sprintf("kill %d", Sys.getpid()))
+      }, mc.cores = 2,mc.prio.queue = pq, mc.allow.fatal = NA)
+
+    }, mc.cores = 2)
+  )
+
+  prio_queue_destroy(pq)
+
+  expect_gte(t["elapsed"], 4)
+})

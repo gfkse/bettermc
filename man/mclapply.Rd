@@ -43,6 +43,8 @@ mclapply(
   mc.timeout.cpu = Inf,
   mc.timeout.signal = c("SIGTERM", "SIGKILL", "SIGABRT", "SIGINT"),
   mc.cpu.pool = NULL,
+  mc.prio.queue = NULL,
+  mc.priority = rep(1L, length(X)),
   mc.compress.chars = TRUE,
   mc.compress.altreps = c("if_allocated", "yes", "no"),
   mc.share.vectors = getOption("bettermc.use_shm", TRUE),
@@ -232,6 +234,21 @@ execution of \code{FUN} will only start after acquiring one CPU unit from
 the pool, which it will release again after returning. This feature can be
 used to control the \emph{total} number of running child processes in
 settings of (complex) nested parallelization.}
+
+\item{mc.prio.queue}{an object as returned by
+\code{\link{prio_queue_create}}. An execution of \code{FUN} will only start
+after acquiring one of the \code{ncpu} CPU units (as configured when
+creating the queue), which it will release again after returning. The order
+in which waiting child processes are scheduled can be controlled with
+\code{mc.priority}. This feature can be used to control the \emph{total}
+number and order of running child processes in settings of (complex) nested
+parallelization.}
+
+\item{mc.priority}{an integer vector of the same length as \code{X}, with 1
+indicating the highest priority and \code{nprio} (as configured when
+creating the queue) indicating the lowest one. If there are multiple
+invocations of \code{FUN} pending, those with a higher priority will be
+scheduled first.}
 
 \item{mc.compress.chars}{should character vectors be compressed using
 \code{\link{char_map}} before returning them from the child process? Can
