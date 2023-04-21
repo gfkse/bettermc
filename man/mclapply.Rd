@@ -44,7 +44,7 @@ mclapply(
   mc.timeout.signal = c("SIGTERM", "SIGKILL", "SIGABRT", "SIGINT"),
   mc.cpu.pool = NULL,
   mc.prio.queue = NULL,
-  mc.priority = rep(1L, length(X)),
+  mc.priority = 1L,
   mc.compress.chars = TRUE,
   mc.compress.altreps = c("if_allocated", "yes", "no"),
   mc.share.vectors = getOption("bettermc.use_shm", TRUE),
@@ -244,11 +244,11 @@ in which waiting child processes are scheduled can be controlled with
 number and order of running child processes in settings of (complex) nested
 parallelization.}
 
-\item{mc.priority}{an integer vector of the same length as \code{X}, with 1
-indicating the highest priority and \code{nprio} (as configured when
-creating the queue) indicating the lowest one. If there are multiple
-invocations of \code{FUN} pending, those with a higher priority will be
-scheduled first.}
+\item{mc.priority}{a single integer or an integer vector of the same length
+as \code{X}, with 1 indicating the highest priority and \code{nprio} (as
+configured when creating the queue) indicating the lowest one. If there are
+multiple invocations of \code{FUN} pending, those with a higher priority
+will be scheduled first.}
 
 \item{mc.compress.chars}{should character vectors be compressed using
 \code{\link{char_map}} before returning them from the child process? Can

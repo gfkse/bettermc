@@ -135,11 +135,11 @@
 #'   \code{mc.priority}. This feature can be used to control the \emph{total}
 #'   number and order of running child processes in settings of (complex) nested
 #'   parallelization.
-#' @param mc.priority an integer vector of the same length as \code{X}, with 1
-#'   indicating the highest priority and \code{nprio} (as configured when
-#'   creating the queue) indicating the lowest one. If there are multiple
-#'   invocations of \code{FUN} pending, those with a higher priority will be
-#'   scheduled first.
+#' @param mc.priority a single integer or an integer vector of the same length
+#'   as \code{X}, with 1 indicating the highest priority and \code{nprio} (as
+#'   configured when creating the queue) indicating the lowest one. If there are
+#'   multiple invocations of \code{FUN} pending, those with a higher priority
+#'   will be scheduled first.
 #' @param mc.compress.chars should character vectors be compressed using
 #'   \code{\link{char_map}} before returning them from the child process? Can
 #'   also be the minimum length of character vectors for which to enable
@@ -285,7 +285,7 @@ mclapply <- function(X, FUN, ...,
                      mc.timeout.signal = c("SIGTERM", "SIGKILL", "SIGABRT", "SIGINT"),
                      mc.cpu.pool = NULL,
                      mc.prio.queue = NULL,
-                     mc.priority = rep(1L, length(X)),
+                     mc.priority = 1L,
                      mc.compress.chars = TRUE,
                      mc.compress.altreps = c("if_allocated", "yes", "no"),
                      mc.share.vectors = getOption("bettermc.use_shm", TRUE),
@@ -345,6 +345,7 @@ mclapply <- function(X, FUN, ...,
   checkmate::assert_class(mc.cpu.pool, c("bettermc_cpu_pool", "semv"),
                           ordered = TRUE, null.ok = TRUE)
   checkmate::assert_class(mc.prio.queue, "bettermc_prio_queue", null.ok = TRUE)
+  if (length(mc.priority) == 1L) mc.priority <- rep(mc.priority, length(X))
   checkmate::assert_numeric(mc.priority, lower = 1, finite = TRUE, any.missing = FALSE,
                             all.missing = FALSE, len = length(X))
 
