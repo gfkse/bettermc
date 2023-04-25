@@ -122,11 +122,6 @@
 #'   \code{mc.allow.error}) of classes \code{c("interrupt-error", "try-error")}.
 #'   Whether or not a SIGINT is processed in a timely manner depends on the code
 #'   being executed.
-#' @param mc.cpu.pool an object as returned by \code{\link{create_cpu_pool}}. An
-#'   execution of \code{FUN} will only start after acquiring one CPU unit from
-#'   the pool, which it will release again after returning. This feature can be
-#'   used to control the \emph{total} number of running child processes in
-#'   settings of (complex) nested parallelization.
 #' @param mc.prio.queue an object as returned by
 #'   \code{\link{prio_queue_create}}. An execution of \code{FUN} will only start
 #'   after acquiring one of the \code{ncpu} CPU units (as configured when
@@ -283,7 +278,6 @@ mclapply <- function(X, FUN, ...,
                      mc.timeout.elapsed = Inf,
                      mc.timeout.cpu = Inf,
                      mc.timeout.signal = c("SIGTERM", "SIGKILL", "SIGABRT", "SIGINT"),
-                     mc.cpu.pool = NULL,
                      mc.prio.queue = NULL,
                      mc.priority = 1L,
                      mc.compress.chars = TRUE,
@@ -342,8 +336,6 @@ mclapply <- function(X, FUN, ...,
                                 SIGINT  =  2L)
   }
   checkmate::assert_int(mc.timeout.signal, lower = 1, upper = 64)
-  checkmate::assert_class(mc.cpu.pool, c("bettermc_cpu_pool", "semv"),
-                          ordered = TRUE, null.ok = TRUE)
   checkmate::assert_class(mc.prio.queue, "bettermc_prio_queue", null.ok = TRUE)
   if (length(mc.priority) == 1L) mc.priority <- rep(mc.priority, length(X))
   checkmate::assert_numeric(mc.priority, lower = 1, finite = TRUE, any.missing = FALSE,
@@ -541,11 +533,6 @@ mclapply <- function(X, FUN, ...,
                     class = c("fail-early-error", "try-error"),
                     condition = cond)
         )
-      }
-
-      if (!is.null(mc.cpu.pool)) {
-        semv_wait(mc.cpu.pool)
-        on.exit(semv_post(mc.cpu.pool), add = TRUE)
       }
 
       if (!is.null(mc.prio.queue)) {
