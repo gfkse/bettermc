@@ -3,6 +3,7 @@ BMC
 CHARSXPs
 Crashdumps
 Hugepage
+IPC
 KiB
 Lifecycle
 MiB
@@ -49,6 +50,7 @@ sinked
 src
 stderr
 stdout
+systemd
 tmpfs
 traceback
 tracebacks

@@ -187,9 +187,10 @@
 #'
 #'   POSIX shared memory has (at least) kernel persistence, i.e. it is not
 #'   automatically freed due to process termination, except if the object is/was
-#'   unlinked. \code{bettermc} tries hard to not leave any byte behind, but it
-#'   could happen that unlinking is incomplete if the parent process is
-#'   terminated while \code{bettermc::mclapply} is running.
+#'   unlinked. (But see also the section on systemd and IPC below.)
+#'   \code{bettermc} tries hard to not leave any byte behind, but it could
+#'   happen that unlinking is incomplete if the parent process is terminated
+#'   while \code{bettermc::mclapply} is running.
 #'
 #'   On Linux you can generally inspect the (not-unlinked) objects currently
 #'   stored in shared memory by listing the files under \emph{/dev/shm}.
@@ -215,6 +216,17 @@
 #'   \code{/dev/shm}) must be (re)mounted with option \emph{huge=advise}, i.e.
 #'   \code{mount -o remount,huge=advise /dev/shm}. (The default is
 #'   \code{huge=never}, but this might be distribution-specific.)
+#'
+#' @section (Linux) systemd and Inter Process Communication (IPC):
+#'   \code{mclappy} uses various forms of IPC: POSIX shared memory and
+#'   semaphores, and System V semaphores. systemd, which is used by most recent
+#'   Linux distributions as their system and service manager, by default
+#'   deletes a user's IPC objects on log out. See e.g.
+#'   \url{https://github.com/systemd/systemd/issues/2039}. This happening will
+#'   apparently make \code{mclapply} fail. Users who intend to use this function
+#'   in an R session which continues to run after log out should hence add
+#'   \code{RemoveIPC=no} to \code{/etc/systemd/logind.conf} or one of the other
+#'   configuration files mentioned in \code{man logind.conf}.
 #'
 #' @seealso \code{\link{copy2shm}}, \code{\link{char_map}},
 #'   \code{\link[parallel:mclapply]{parallel::mclapply}}
