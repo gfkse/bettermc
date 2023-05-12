@@ -62,9 +62,13 @@ etry <- function(expr, silent = FALSE,
         # (cf. https://stat.ethz.ch/pipermail/r-devel/2022-August/081932.html)
         is_promise_missing_arg <- vapply(vars, is.eval.promise2missing.arg, NA, env = e)
 
+        vars4ls_str <- vars[!is_uneval_promise & !is_promise_missing_arg]
+        # we have to skip "...", because evaluating an object of type "..." in
+        # older R versions (e.g. v3.5.3) fails if a missing argument was passed
+        # in ... (in e.g. v4.2.3 this no longer is an issue)
+        vars4ls_str <- setdiff(vars4ls_str, "...")
         locals <- capture.output(
-          print(structure(vars[!is_uneval_promise & !is_promise_missing_arg],
-                          envir = e, mode = "any", class = "ls_str"))
+          print(structure(vars4ls_str, envir = e, mode = "any", class = "ls_str"))
         )
         uneval_promises <- unlist(lapply(vars[is_uneval_promise], function(v) {
           # keep at most 5 lines of promise code and indicate truncation
@@ -83,7 +87,13 @@ etry <- function(expr, silent = FALSE,
           paste0(v, " : <missing>")
         }))
 
-        c(uneval_promises, missing_promises, locals)
+        ellipsis <- if ("..." %in% vars) {
+          "<...>"
+        } else {
+          character()
+        }
+
+        c(ellipsis, uneval_promises, missing_promises, locals)
       }))
 
       if (dump.frames != "no") {
