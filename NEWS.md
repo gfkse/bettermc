@@ -1,3 +1,8 @@
+# bettermc 1.2.2
+
+## Bug Fixes
+* avoid the potential failure of a test of the `mc.system.time` argument and also skip other related tests, which are sensitive to timings, on CRAN
+
 # bettermc 1.2.1
 
 ## New Features
