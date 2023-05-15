@@ -51,6 +51,7 @@ mclapply(
   mc.share.copy = TRUE,
   mc.shm.ipc = getOption("bettermc.use_shm", TRUE),
   mc.force.fork = FALSE,
+  mc.gc.reset.triggers = TRUE,
   mc.progress = interactive()
 )
 
@@ -280,6 +281,9 @@ requires that \code{mc.cores >= 2} and also ensures that the effective
 value for \code{mc.cores} never drops to less than 2 as a result of
 \code{mc.retry} being negative.}
 
+\item{mc.gc.reset.triggers}{should \code{\link{gc_reset_triggers}()} be
+called before forking?}
+
 \item{mc.progress}{should a progress bar be printed to stderr of the parent
 process (package \code{progress} must be installed)?}
 }
@@ -363,8 +367,8 @@ display a progress bar.}
 
   \code{mclappy} uses various forms of IPC: POSIX shared memory and
   semaphores, and System V semaphores. systemd, which is used by most recent
-  Linux distributions as their system and service manager, by default
-  deletes a user's IPC objects on log out. See e.g.
+  Linux distributions as their system and service manager, by default deletes
+  a user's IPC objects on log out. See e.g.
   \url{https://github.com/systemd/systemd/issues/2039}. This happening will
   apparently make \code{mclapply} fail. Users who intend to use this function
   in an R session which continues to run after log out should hence add

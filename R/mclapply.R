@@ -165,6 +165,8 @@
 #'   requires that \code{mc.cores >= 2} and also ensures that the effective
 #'   value for \code{mc.cores} never drops to less than 2 as a result of
 #'   \code{mc.retry} being negative.
+#' @param mc.gc.reset.triggers should \code{\link{gc_reset_triggers}()} be
+#'   called before forking?
 #' @param mc.progress should a progress bar be printed to stderr of the parent
 #'   process (package \code{progress} must be installed)?
 #'
@@ -220,8 +222,8 @@
 #' @section (Linux) systemd and Inter Process Communication (IPC):
 #'   \code{mclappy} uses various forms of IPC: POSIX shared memory and
 #'   semaphores, and System V semaphores. systemd, which is used by most recent
-#'   Linux distributions as their system and service manager, by default
-#'   deletes a user's IPC objects on log out. See e.g.
+#'   Linux distributions as their system and service manager, by default deletes
+#'   a user's IPC objects on log out. See e.g.
 #'   \url{https://github.com/systemd/systemd/issues/2039}. This happening will
 #'   apparently make \code{mclapply} fail. Users who intend to use this function
 #'   in an R session which continues to run after log out should hence add
@@ -299,6 +301,7 @@ mclapply <- function(X, FUN, ...,
                      mc.share.copy = TRUE,
                      mc.shm.ipc = getOption("bettermc.use_shm", TRUE),
                      mc.force.fork = FALSE,
+                     mc.gc.reset.triggers = TRUE,
                      mc.progress = interactive()) {
 
   # as in parallel::mclapply
@@ -377,6 +380,8 @@ mclapply <- function(X, FUN, ...,
   if (mc.force.fork && !mc.allow.recursive) {
     stop("'mc.force.fork' requires 'mc.allow.recursive' to be TRUE.")
   }
+
+  checkmate::assert_flag(mc.gc.reset.triggers)
 
   checkmate::assert_flag(mc.progress)
   if (mc.progress && !requireNamespace("progress", quietly = TRUE)) {
@@ -767,6 +772,9 @@ mclapply <- function(X, FUN, ...,
     } else {
       X_seq <- seq_along(X)
     }
+
+    if (mc.gc.reset.triggers) gc_reset_triggers(print_stats = FALSE, reset = FALSE)
+
     withCallingHandlers(
       res <- parallel_mclapply(
         X = X_seq, FUN = wrapper, ... = ...,

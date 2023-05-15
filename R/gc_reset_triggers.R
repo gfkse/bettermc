@@ -23,8 +23,8 @@
 #' @return the return value of the final call to \code{\link{gc}()}.
 #'
 #' @export
-gc_reset_trigger <- function(print_stats = TRUE, verbose = getOption("verbose"),
-                             reset = TRUE) {
+gc_reset_triggers <- function(print_stats = TRUE, verbose = getOption("verbose"),
+                              reset = TRUE) {
   prev <- gc(verbose = verbose, reset = FALSE, full = FALSE)
 
   if (print_stats) {
