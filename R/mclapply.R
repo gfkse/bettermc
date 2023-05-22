@@ -301,7 +301,7 @@ mclapply <- function(X, FUN, ...,
                      mc.share.copy = TRUE,
                      mc.shm.ipc = getOption("bettermc.use_shm", TRUE),
                      mc.force.fork = FALSE,
-                     mc.gc.reset.triggers = TRUE,
+                     mc.gc.reset.triggers = FALSE,
                      mc.progress = interactive()) {
 
   # as in parallel::mclapply
